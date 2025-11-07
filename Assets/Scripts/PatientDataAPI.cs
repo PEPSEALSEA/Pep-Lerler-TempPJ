@@ -67,17 +67,17 @@ public class PatientDataAPI : MonoBehaviour
     }
 
     /// <summary>
-    /// Generate realistic sample patient data
+    /// Generate realistic sample patient data with proper decimal precision
     /// </summary>
     public PatientData GenerateSampleData(string patientId)
     {
         // Pulse: No decimals (integer)
         float pulseValue = Mathf.Round(UnityEngine.Random.Range(60f, 100f));
 
-        // Movement Magnitude: 3 decimals
+        // Raw Movement: 3 decimals
         float movementValue = RoundToDecimals(UnityEngine.Random.Range(0f, 2f), 3);
 
-        // Sleep Quality Score: 2 decimals
+        // Sleep Score: 2 decimals
         float sleepValue = RoundToDecimals(UnityEngine.Random.Range(60f, 95f), 2);
 
         PatientData data = new PatientData
@@ -286,12 +286,11 @@ public class PatientDataAPI : MonoBehaviour
     }
 
     /// <summary>
-    /// Round to specific number of decimal places
+    /// Round to specific number of decimal places (fixes floating point precision)
     /// </summary>
     float RoundToDecimals(float value, int decimals)
     {
-        float multiplier = Mathf.Pow(10f, decimals);
-        return Mathf.Round(value * multiplier) / multiplier;
+        return (float)Math.Round((double)value, decimals);
     }
 }
 
