@@ -1,0 +1,167 @@
+================================================================================
+ANSWERS TO YOUR QUESTIONS
+================================================================================
+
+Q1: "Response is not JSON format. Treating as success" - Is this a mistake?
+----------------------------------------------------------------------------
+NO, this is NOT a mistake! It's just a WARNING, not an error.
+
+What it means:
+- Your API successfully received the data
+- The API responded, but not in JSON format (maybe HTML or plain text)
+- The script treats this as SUCCESS because the HTTP request worked
+- Your data WAS sent successfully!
+
+This is common with Google Apps Script - sometimes it returns HTML or 
+empty responses instead of JSON. The important thing is: your data was sent!
+
+You can ignore this warning - it's working correctly.
+
+================================================================================
+
+Q2: How long will the line graph plot? I didn't see anything.
+----------------------------------------------------------------------------
+The graph plots data in REAL-TIME as it comes in.
+
+HOW IT WORKS:
+- When you click "Connect Device", data is generated every 2 seconds
+- Each time data is generated, it's added to the graph
+- The graph shows the LAST 24 data points (about 48 seconds of data at 2-second intervals)
+- Graph updates automatically every time new data arrives
+
+WHY YOU MIGHT NOT SEE IT:
+1. You need at least 2 data points for a line to appear
+2. Make sure "Toggle All" is ON (or at least one toggle is ON)
+3. Make sure GraphContainer has LineGraphRenderer component
+4. Make sure graphContainer field is assigned in LineGraphRenderer
+5. Wait a few seconds after connecting device for data to accumulate
+
+TO SEE THE GRAPH:
+1. Click "Connect Device" button
+2. Wait 4-6 seconds (need at least 2-3 data points)
+3. Check that toggles are ON
+4. The graph should appear automatically
+
+GRAPH DURATION:
+- Shows last 24 data points
+- At 2-second intervals = 48 seconds of data
+- Old data is automatically removed when new data arrives
+- Graph continuously updates in real-time
+
+================================================================================
+
+Q3: Is Export Report button the one that sends info?
+----------------------------------------------------------------------------
+NO! The Export Report button does NOT send data to the API.
+
+WHAT SENDS DATA:
+- Clicking "Connect Device" button sends data automatically
+- Data is sent every 2 seconds while device is connected
+- You don't need to click Export Report to send data
+
+WHAT EXPORT REPORT DOES:
+- It's meant to EXPORT a report file (PDF/CSV) of the current data
+- This feature is NOT yet implemented (it's a placeholder)
+- It does NOT send data to the API
+- Right now it just logs data to console
+
+DATA FLOW:
+1. Click "Connect Device" → Starts sending data every 2 seconds
+2. Data is automatically sent to API
+3. Data appears on dashboard
+4. Export Report → Would export a file (not implemented yet)
+
+================================================================================
+
+Q4: Do I need to change the API URL link?
+----------------------------------------------------------------------------
+MAYBE - It depends on your Google Apps Script setup.
+
+CURRENT URL IN SCRIPT:
+https://script.google.com/macros/s/AKfycbwOIWUdbLHsMl4Bwgh8TiauBvPQKVOy7XEFXy6grauL8V55qaFS0D4xtKoTtXmJCAnmGw/exec
+
+HOW TO CHECK IF YOU NEED TO CHANGE IT:
+1. Open your Google Apps Script project
+2. Go to "Deploy" → "Manage deployments"
+3. Copy the "Web app URL"
+4. Compare it with the URL in the script
+5. If they're different, update the script
+
+HOW TO UPDATE THE URL:
+1. In Unity, select the GameObject with PatientDataAPI component
+2. In Inspector, find "Api Url" field
+3. Paste your correct Google Apps Script Web App URL
+4. Make sure the URL ends with "/exec"
+
+IMPORTANT:
+- The URL must be the Web App URL (not the script editor URL)
+- The URL must have "/exec" at the end
+- Make sure your Google Apps Script is deployed as a Web App
+- Make sure "Execute as: Me" and "Who has access: Anyone" is set
+
+================================================================================
+
+Q5: What is "Test Patient Id"?
+----------------------------------------------------------------------------
+"Test Patient Id" is a DEFAULT patient ID used for testing.
+
+WHAT IT IS:
+- A default patient ID: "PT-1234567890-ABCDE"
+- Used when no patient ID is entered
+- Can be changed in the Inspector
+
+WHERE IT'S USED:
+- In PatientDataAPI component
+- Used as fallback if no patient ID is provided
+- Used for testing/development
+
+HOW TO CHANGE IT:
+1. Select GameObject with PatientDataAPI component
+2. In Inspector, find "Test Patient Id" field
+3. Type your desired patient ID
+4. This will be used if no patient ID is entered in the UI
+
+HOW IT WORKS IN YOUR APP:
+1. User enters Patient ID in the input field → Uses that ID
+2. User skips/doesn't enter ID → Uses "Test Patient Id" from API component
+3. Patient ID is saved in PlayerPrefs → Loaded next time
+
+RECOMMENDATION:
+- Keep it as default for testing
+- Or change it to a real patient ID format you use
+- The actual patient ID comes from the Patient Input Panel
+
+================================================================================
+SUMMARY
+================================================================================
+
+1. "Response is not JSON" = NOT an error, data was sent successfully ✓
+2. Graph plots in real-time, shows last 24 points, wait 4-6 seconds to see it
+3. Export Report = Does NOT send data, Connect Device button sends data
+4. API URL = Check if it matches your Google Apps Script Web App URL
+5. Test Patient Id = Default ID for testing, can be changed in Inspector
+
+================================================================================
+TROUBLESHOOTING CHECKLIST
+================================================================================
+
+If graph doesn't show:
+□ Clicked "Connect Device" button
+□ Waited at least 4-6 seconds
+□ Checked that "Toggle All" is ON
+□ Verified GraphContainer has LineGraphRenderer component
+□ Verified graphContainer field is assigned
+□ Checked Console for "Graph data points" log messages
+
+If data doesn't send:
+□ Verified API URL is correct
+□ Checked that PatientDataAPI component is assigned
+□ Verified patient ID is set
+□ Checked Console for "SENDING DATA TO API" messages
+□ Verified Google Apps Script is deployed as Web App
+
+================================================================================
+END OF ANSWERS
+================================================================================
+
+

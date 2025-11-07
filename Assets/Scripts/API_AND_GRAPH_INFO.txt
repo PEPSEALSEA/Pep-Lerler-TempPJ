@@ -1,0 +1,102 @@
+================================================================================
+API URL AND DATA STORAGE - IMPORTANT INFORMATION
+================================================================================
+
+Q: Is the data I sent appearing in the API URL link?
+-------------------------------------------------------------------------------
+
+NO - The link you provided is just a TEST/ECHO endpoint, not where data is stored.
+
+The actual API URL in your script is:
+https://script.google.com/macros/s/AKfycbwOIWUdbLHsMl4Bwgh8TiauBvPQKVOy7XEFXy6grauL8V55qaFS0D4xtKoTtXmJCAnmGw/exec
+
+This is your Google Apps Script Web App URL. The data is stored in:
+- Google Sheets (if your script uses Sheets)
+- Or in the script's memory/database
+
+To see your data:
+1. Check your Google Sheets (if the script saves to Sheets)
+2. Use the "getPatientData" action to retrieve data
+3. Check the Google Apps Script execution logs
+
+The echo/test URL you found is just for testing API connectivity, not for viewing data.
+
+================================================================================
+API ACTION FIXED
+================================================================================
+
+I've changed the action from "submitData" to "addPatient" because your API 
+only supports these actions:
+- login
+- getPatients  
+- getPatientData
+- addPatient  ← This is what we use to submit data
+- removePatient
+
+The script now uses "addPatient" action, so it should work correctly now!
+
+================================================================================
+GRAPH INFORMATION - IT'S ALREADY A LINE GRAPH!
+================================================================================
+
+Your graph IS a line graph! Here's how it works:
+
+HOW IT WORKS:
+-------------
+1. The LineGraphRenderer creates a line graph using Unity UI
+2. It draws lines by creating small Image segments between data points
+3. Each line connects all the data points smoothly
+4. Multiple lines can be shown (Pulse, Movement, Sleep) with different colors
+5. The graph automatically scales to fit all data
+
+VISUAL FEATURES:
+----------------
+✓ Grid lines (horizontal and vertical) for easy reading
+✓ Multiple colored lines (Blue for Pulse, Cyan for Movement, Yellow for Sleep)
+✓ Automatic scaling (fits data to graph area)
+✓ Smooth line connections between points
+✓ Filter toggles (All, Pulse, Movement, Sleep)
+
+GRAPH APPEARANCE:
+-----------------
+- Background: White with light gray grid
+- Pulse Line: Blue (#3366FF)
+- Movement Line: Cyan/Light Blue (#4DCCE6)
+- Sleep Line: Yellow/Orange (#FFCC33)
+- Line Width: 3 pixels (adjustable in Inspector)
+- Grid: 10x10 lines (adjustable)
+
+HOW TO USE:
+-----------
+1. Make sure GraphContainer has LineGraphRenderer component
+2. Assign GraphContainer's RectTransform to "Graph Container" field
+3. Data will automatically appear when you connect device
+4. Use toggles to show/hide different data lines
+
+================================================================================
+TROUBLESHOOTING GRAPH
+================================================================================
+
+Problem: Graph doesn't show
+Solution: 
+- Make sure GraphContainer has LineGraphRenderer component
+- Make sure graphContainer field is assigned
+- Make sure you have data (connect device first)
+
+Problem: Lines look jagged
+Solution: 
+- This is normal - lines are made of segments
+- Increase lineWidth in Inspector for smoother look
+- Add more data points for smoother curves
+
+Problem: Graph is empty
+Solution:
+- Connect device to generate data
+- Check that data is being added to pulseData, movementData, sleepData lists
+- Make sure toggles are ON (at least one should be checked)
+
+================================================================================
+END OF INFORMATION
+================================================================================
+
+

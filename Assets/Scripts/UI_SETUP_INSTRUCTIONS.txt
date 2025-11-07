@@ -1,0 +1,377 @@
+================================================================================
+PATIENT REHABILITATION DASHBOARD - UI SETUP INSTRUCTIONS
+================================================================================
+
+Follow these steps to set up the UI in Unity's Hierarchy and Inspector.
+Keep this file open while you work in Unity.
+
+================================================================================
+STEP 1: CANVAS SETUP
+================================================================================
+
+1. In Hierarchy, Right-click > UI > Canvas
+   - This creates a Canvas with EventSystem
+
+2. Select the Canvas in Hierarchy
+   - In Inspector, find "Canvas Scaler" component
+   - Set "UI Scale Mode" to "Scale With Screen Size"
+   - Set "Reference Resolution" to: X=1080, Y=1920
+   - Set "Match" to 0.5 (or adjust as needed)
+   - Set "Screen Match Mode" to "Match Width Or Height"
+
+3. Canvas settings:
+   - Render Mode: Screen Space - Overlay
+   - Pixel Perfect: (optional, can enable)
+
+================================================================================
+STEP 2: MAIN DASHBOARD PANEL
+================================================================================
+
+1. Right-click Canvas in Hierarchy > Create Empty
+   - Name it: "DashboardPanel"
+
+2. Select DashboardPanel
+   - Add Component: "Rehab Dashboard Controller"
+   - Set RectTransform anchors to stretch:
+     * Click the anchor preset box (top-left of RectTransform)
+     * Hold Shift + Alt
+     * Click the bottom-right preset (stretch both)
+   - Set Left, Right, Top, Bottom to 0
+
+================================================================================
+STEP 3: PATIENT INPUT PANEL
+================================================================================
+
+1. Right-click Canvas > UI > Panel
+   - Name it: "PatientInputPanel"
+   - Add Component: "Patient Input Manager"
+
+2. Create child elements under PatientInputPanel:
+
+   A. InputField (TMP):
+      - Right-click PatientInputPanel > UI > Input Field - TextMeshPro
+      - Name: "PatientIdInput"
+      - In PatientInputManager component, drag this to "Patient Id Input" field
+
+   B. Submit Button:
+      - Right-click PatientInputPanel > UI > Button - TextMeshPro
+      - Name: "SubmitButton"
+      - Set button text to "Submit"
+      - In PatientInputManager, drag to "Submit Button" field
+
+   C. Skip Button (optional):
+      - Right-click PatientInputPanel > UI > Button - TextMeshPro
+      - Name: "SkipButton"
+      - Set button text to "Skip"
+      - In PatientInputManager, drag to "Skip Button" field
+
+   D. Saved ID Text:
+      - Right-click PatientInputPanel > UI > Text - TextMeshPro
+      - Name: "SavedPatientIdText"
+      - In PatientInputManager, drag to "Saved Patient Id Text" field
+
+3. Position PatientInputPanel to cover the screen initially
+   - Set anchors to stretch (Shift+Alt, bottom-right preset)
+   - Set Left, Right, Top, Bottom to 0
+
+================================================================================
+STEP 4: TOP METRICS CARDS (3 CARDS)
+================================================================================
+
+For EACH metric (Pulse, Movement, Sleep), create a card:
+
+PULSE CARD:
+1. Right-click DashboardPanel > UI > Panel
+   - Name: "PulseCard"
+   - Position it at the top (adjust size as needed)
+
+2. Create child elements:
+
+   A. Value Text:
+      - Right-click PulseCard > UI > Text - TextMeshPro
+      - Name: "PulseValueText"
+      - Set text to "--" (temporary)
+      - In RehabDashboardController, drag to "Pulse Value Text" field
+
+   B. Change Text:
+      - Right-click PulseCard > UI > Text - TextMeshPro
+      - Name: "PulseChangeText"
+      - Set text size smaller
+      - In RehabDashboardController, drag to "Pulse Change Text" field
+
+   C. Progress Bar:
+      - Right-click PulseCard > UI > Image
+      - Name: "PulseFillBar"
+      - Set Image Type to "Filled"
+      - Fill Method: "Horizontal"
+      - Fill Origin: "Left"
+      - Set Fill Amount to 0
+      - In RehabDashboardController, drag to "Pulse Fill Bar" field
+
+MOVEMENT CARD:
+- Repeat above steps, name everything "Movement" instead of "Pulse"
+- Assign to "Movement Value Text", "Movement Change Text", "Movement Fill Bar"
+
+SLEEP CARD:
+- Repeat above steps, name everything "Sleep" instead of "Pulse"
+- Assign to "Sleep Value Text", "Sleep Change Text", "Sleep Fill Bar"
+
+Arrange all 3 cards horizontally at the top of DashboardPanel.
+
+================================================================================
+STEP 5: JOINT ANGLES SECTION
+================================================================================
+
+Option A - Using CircularProgressBar (Recommended):
+
+For EACH joint (Knee, Elbow, Shoulder, Hip):
+
+1. Right-click DashboardPanel > Create Empty
+   - Name: "KneeAngleBar" (or ElbowAngleBar, etc.)
+
+2. Add Component: "Circular Progress Bar"
+
+3. Create child elements:
+
+   A. Fill Image:
+      - Right-click KneeAngleBar > UI > Image
+      - Name: "FillImage"
+      - Set Image Type to "Filled"
+      - Fill Method: "Radial 360"
+      - Fill Origin: "Top"
+      - Fill Amount: 0
+      - In CircularProgressBar component, drag to "Fill Image" field
+
+   B. Angle Text:
+      - Right-click KneeAngleBar > UI > Text - TextMeshPro
+      - Name: "AngleText"
+      - Set text to "0°"
+      - Center it in the circle
+      - In CircularProgressBar, drag to "Angle Text" field
+
+   C. Label Text:
+      - Right-click KneeAngleBar > UI > Text - TextMeshPro
+      - Name: "LabelText"
+      - Set text to "Knee" (or "Elbow", "Shoulder", "Hip")
+      - Position below the circle
+      - In CircularProgressBar, drag to "Label Text" field
+
+4. In RehabDashboardController, assign:
+   - KneeAngleBar to "Knee Angle Bar"
+   - ElbowAngleBar to "Elbow Angle Bar"
+   - ShoulderAngleBar to "Shoulder Angle Bar"
+   - HipAngleBar to "Hip Angle Bar"
+
+Option B - Using Simple UI (Fallback):
+- Create 4 Text (TMP) elements for angle values
+- Create 4 Image elements for fill bars (horizontal)
+- Assign to RehabDashboardController fallback fields:
+  * Knee Angle Text, Knee Angle Fill
+  * Elbow Angle Text, Elbow Angle Fill
+  * Shoulder Angle Text, Shoulder Angle Fill
+  * Hip Angle Text, Hip Angle Fill
+
+Arrange all 4 joint indicators horizontally.
+
+================================================================================
+STEP 6: ACTIVITY GRAPH
+================================================================================
+
+1. Right-click DashboardPanel > UI > Panel
+   - Name: "GraphContainer"
+   - Position it below joint angles
+   - Make it large enough for the graph
+
+2. Add Component: "Line Graph Renderer"
+   - Drag GraphContainer's RectTransform to "Graph Container" field
+
+3. Create Toggle Buttons (filters):
+
+   A. Toggle All:
+      - Right-click GraphContainer > UI > Toggle - TextMeshPro
+      - Name: "ToggleAll"
+      - Set label text to "All"
+      - Set "Is On" to TRUE (checked)
+      - In RehabDashboardController, drag to "Toggle All" field
+
+   B. Toggle Pulse:
+      - Right-click GraphContainer > UI > Toggle - TextMeshPro
+      - Name: "TogglePulse"
+      - Set label text to "Pulse"
+      - In RehabDashboardController, drag to "Toggle Pulse" field
+
+   C. Toggle Movement:
+      - Right-click GraphContainer > UI > Toggle - TextMeshPro
+      - Name: "ToggleMovement"
+      - Set label text to "Movement"
+      - In RehabDashboardController, drag to "Toggle Movement" field
+
+   D. Toggle Sleep:
+      - Right-click GraphContainer > UI > Toggle - TextMeshPro
+      - Name: "ToggleSleep"
+      - Set label text to "Sleep"
+      - In RehabDashboardController, drag to "Toggle Sleep" field
+
+4. Arrange toggles horizontally at the top of GraphContainer
+
+================================================================================
+STEP 7: CONNECT DEVICE BUTTON
+================================================================================
+
+1. Right-click Canvas > UI > Button - TextMeshPro
+   - Name: "ConnectDeviceButton"
+   - Set button text to "Connect Device"
+   - Position in top-right corner
+
+2. Add Component: "Device Connection Manager"
+   - Drag ConnectDeviceButton to "Connect Button" field
+   - Drag the button's Text (TMP) child to "Connect Button Text" field
+
+3. Optional - Status Text:
+   - Right-click ConnectDeviceButton (or Canvas) > UI > Text - TextMeshPro
+   - Name: "ConnectionStatusText"
+   - Position near the button
+   - In DeviceConnectionManager, drag to "Connection Status Text" field
+
+================================================================================
+STEP 8: OTHER BUTTONS
+================================================================================
+
+REFRESH BUTTON:
+1. Right-click DashboardPanel > UI > Button - TextMeshPro
+   - Name: "RefreshButton"
+   - Set button text to "Refresh"
+   - Position appropriately (e.g., top-left)
+   - In RehabDashboardController, drag to "Refresh Button" field
+
+EXPORT REPORT BUTTON:
+1. Right-click DashboardPanel > UI > Button - TextMeshPro
+   - Name: "ExportReportButton"
+   - Set button text to "Export Report"
+   - Position appropriately
+   - In RehabDashboardController, drag to "Export Report Button" field
+
+================================================================================
+STEP 9: TITLE AND HEADER
+================================================================================
+
+1. Right-click DashboardPanel > UI > Text - TextMeshPro
+   - Name: "TitleText"
+   - Set text to "Patient Rehabilitation Dashboard"
+   - Make it large and bold
+   - Position at the very top
+
+2. Right-click DashboardPanel > UI > Text - TextMeshPro
+   - Name: "PatientSelectionText"
+   - Set text to "Select a Patient" or similar
+   - Position below title
+
+================================================================================
+STEP 10: WIRE EVERYTHING UP IN REHABDASHBOARDCONTROLLER
+================================================================================
+
+Select DashboardPanel and check RehabDashboardController component:
+
+PATIENT INPUT:
+✓ Patient Input Manager - drag PatientInputPanel
+
+DEVICE CONNECTION:
+✓ Device Connection Manager - drag the GameObject with DeviceConnectionManager
+
+TOP METRICS:
+✓ Pulse Value Text
+✓ Pulse Change Text
+✓ Pulse Fill Bar
+✓ Movement Value Text
+✓ Movement Change Text
+✓ Movement Fill Bar
+✓ Sleep Value Text
+✓ Sleep Change Text
+✓ Sleep Fill Bar
+
+JOINT ANGLES:
+✓ Knee Angle Bar (or Knee Angle Text + Knee Angle Fill)
+✓ Elbow Angle Bar (or Elbow Angle Text + Elbow Angle Fill)
+✓ Shoulder Angle Bar (or Shoulder Angle Text + Shoulder Angle Fill)
+✓ Hip Angle Bar (or Hip Angle Text + Hip Angle Fill)
+
+ACTIVITY GRAPH:
+✓ Line Graph - drag GraphContainer (the one with LineGraphRenderer)
+✓ Toggle All
+✓ Toggle Pulse
+✓ Toggle Movement
+✓ Toggle Sleep
+
+BUTTONS:
+✓ Refresh Button
+✓ Export Report Button
+
+================================================================================
+STEP 11: FINAL CHECKLIST
+================================================================================
+
+Before testing, verify:
+
+□ Canvas is set to 1080x1920 resolution
+□ DashboardPanel has RehabDashboardController component
+□ All fields in RehabDashboardController are assigned (no "None" fields)
+□ PatientInputPanel has PatientInputManager component
+□ ConnectDeviceButton has DeviceConnectionManager component
+□ All UI elements are properly positioned
+□ TextMeshPro is used for all text elements
+□ Progress bars are set to "Filled" type
+□ Circular progress bars use "Radial 360" fill
+□ Graph container has LineGraphRenderer component
+
+================================================================================
+TESTING
+================================================================================
+
+1. Press Play
+2. Enter a patient ID and click Submit
+3. Dashboard should appear
+4. Click "Connect Device" button
+5. Should see "Connected!" message
+6. Data should update every 2 seconds
+7. Try clicking graph filter toggles
+8. Click Refresh button
+9. Stop Play mode
+10. Press Play again - patient ID should be remembered
+
+================================================================================
+TIPS
+================================================================================
+
+• Use RectTransform anchor presets for responsive layout
+• Hold Shift+Alt when clicking anchor preset to set position too
+• Use TextMeshPro for all text (better quality)
+• Set up a color scheme: light blue (#4A90E2), white, light gray
+• Test on different screen sizes
+• The graph automatically normalizes data
+• Joint angles range: 0-180 degrees
+• Progress bars: 0-100%
+
+================================================================================
+TROUBLESHOOTING
+================================================================================
+
+Problem: Nothing happens when clicking Connect Device
+Solution: Make sure DeviceConnectionManager is assigned in RehabDashboardController
+
+Problem: Graph doesn't show
+Solution: Check that LineGraphRenderer has graphContainer assigned
+
+Problem: Patient ID not saving
+Solution: Check that PatientInputManager component is on PatientInputPanel
+
+Problem: Data not updating
+Solution: Make sure all references in RehabDashboardController are assigned
+
+Problem: UI looks wrong on different screen sizes
+Solution: Check Canvas Scaler settings and use anchor presets
+
+================================================================================
+END OF SETUP INSTRUCTIONS
+================================================================================
+
+
