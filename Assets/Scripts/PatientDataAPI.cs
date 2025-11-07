@@ -123,21 +123,40 @@ public class PatientDataAPI : MonoBehaviour
     /// </summary>
     public IEnumerator SubmitPatientData(PatientData data, Action<ApiResponse> callback)
     {
+        // Round the values to ensure proper precision before sending
+        float pulse = Mathf.Round(data.pulse);
+        float movement = (float)Math.Round((double)data.movementMagnitude, 3);
+        float sleep = (float)Math.Round((double)data.sleepQualityScore, 2);
+
+        // Round joint angles
+        JointAngleData roundedJoints = new JointAngleData
+        {
+            leftShoulder = Mathf.Round(data.jointAngle.leftShoulder),
+            rightShoulder = Mathf.Round(data.jointAngle.rightShoulder),
+            leftElbow = Mathf.Round(data.jointAngle.leftElbow),
+            rightElbow = Mathf.Round(data.jointAngle.rightElbow),
+            leftHip = Mathf.Round(data.jointAngle.leftHip),
+            rightHip = Mathf.Round(data.jointAngle.rightHip),
+            leftKnee = Mathf.Round(data.jointAngle.leftKnee),
+            rightKnee = Mathf.Round(data.jointAngle.rightKnee)
+        };
+
         // Create the request with action "submitData" to match the API
         SubmitDataRequest requestData = new SubmitDataRequest
         {
             action = "submitData",
             timestamp = data.timestamp,
             patientId = data.patientId,
-            pulse = data.pulse,
-            movementMagnitude = data.movementMagnitude,
-            sleepQualityScore = data.sleepQualityScore,
-            jointAngle = data.jointAngle
+            pulse = pulse,
+            movementMagnitude = movement,
+            sleepQualityScore = sleep,
+            jointAngle = roundedJoints
         };
 
         string jsonData = JsonUtility.ToJson(requestData);
 
-        Debug.Log($"Sending data: Patient={data.patientId}, Pulse={data.pulse}, Movement={data.movementMagnitude:F3}, Sleep={data.sleepQualityScore:F2}");
+        Debug.Log($"Sending data: Patient={data.patientId}, Pulse={pulse}, Movement={movement:F3}, Sleep={sleep:F2}");
+        Debug.Log($"JSON: {jsonData}");
 
         // Use POST method with JSON body
         using (UnityWebRequest request = new UnityWebRequest(apiUrl, "POST"))
