@@ -89,7 +89,6 @@ public class PatientInputManager : MonoBehaviour
     void OnSubmitClicked()
     {
         string inputId = patientIdInput != null ? patientIdInput.text : "";
-        
         UIDebug.Log(nameof(PatientInputManager), $"Submit clicked | Input = '{inputId}'");
 
         if (string.IsNullOrEmpty(inputId))
@@ -99,13 +98,15 @@ public class PatientInputManager : MonoBehaviour
         }
 
         SavePatientId(inputId);
-        
+
         if (patientInputPanel != null)
         {
             patientInputPanel.SetActive(false);
         }
 
         OnPatientIdSubmitted?.Invoke(currentPatientId);
+
+        DoctorChatManager.Instance?.SetCurrentPatientId(currentPatientId);
     }
 
     void OnSkipClicked()
@@ -119,8 +120,10 @@ public class PatientInputManager : MonoBehaviour
 
         string idToUse = !string.IsNullOrEmpty(currentPatientId) ? currentPatientId : "DEFAULT_PATIENT";
         ChatAPI.Instance.currentUserId = idToUse;
-        ChatAPI.Instance.currentUserType = "patient"; // ADD THIS LINE
+        ChatAPI.Instance.currentUserType = "patient";
         OnPatientIdSubmitted?.Invoke(idToUse);
+
+        DoctorChatManager.Instance?.SetCurrentPatientId(idToUse);
     }
 
     public string GetCurrentPatientId()

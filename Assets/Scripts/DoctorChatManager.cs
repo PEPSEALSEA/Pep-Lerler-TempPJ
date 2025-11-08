@@ -5,7 +5,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class DoctorChatManager : MonoBehaviour
+public class DoctorChatManager : Singleton<DoctorChatManager>
 {
     [Header("Chat Entry Points")]
     public Button chatButton;
@@ -163,10 +163,16 @@ public class DoctorChatManager : MonoBehaviour
 
     void AttemptDoctorConnection()
     {
-        string enteredId = doctorIdInputField != null ? doctorIdInputField.text.Trim().ToUpperInvariant() : string.Empty;
+        // GET PATIENT ID FIRST
+        currentPatientId = PatientInputManager.Instance?.GetCurrentPatientId();
+        if (string.IsNullOrEmpty(currentPatientId))
+        {
+            UIDebug.Warn(nameof(DoctorChatManager), "Current patient ID missing when connecting to doctor.");
+            DisplayStatusMessage("Please enter your Patient ID first.", Color.yellow);
+            return;
+        }
 
-        UIDebug.Log(nameof(DoctorChatManager), $"AttemptDoctorConnection | ID = '{enteredId}'");
-
+        string enteredId = doctorIdInputField?.text.Trim().ToUpperInvariant() ?? "";
         if (string.IsNullOrEmpty(enteredId))
         {
             DisplayStatusMessage("Please enter a doctor ID.", Color.yellow);
@@ -181,49 +187,29 @@ public class DoctorChatManager : MonoBehaviour
         currentDoctorId = doctorInfo.doctorId.Trim();
         currentDoctorName = string.IsNullOrWhiteSpace(doctorInfo.doctorName) ? $"Doctor {currentDoctorId}" : doctorInfo.doctorName;
         isDoctorConnected = true;
-            UIDebug.Log(nameof(DoctorChatManager), $"Doctor connected | {currentDoctorName} ({currentDoctorId})");
 
-        if (doctorLoginContainer != null)
+        // SET CHAT API USER
+        if (useChatApi && chatApi != null)
         {
-            doctorLoginContainer.SetActive(false);
+            chatApi.currentUserId = currentPatientId;
+            chatApi.currentUserType = "patient";
         }
 
-        if (chatContainer != null)
-        {
-            chatContainer.SetActive(true);
-        }
-
-        if (sendMessageButton != null)
-        {
-            sendMessageButton.interactable = true;
-        }
-
-        if (activeDoctorNameText != null)
-        {
-            activeDoctorNameText.text = $"Chatting with {currentDoctorName}";
-        }
-
-        DisplayStatusMessage($"Connected to {currentDoctorName} ({currentDoctorId}).", new Color(0.4f, 1f, 0.6f));
-
+        // UI UPDATE
+        doctorLoginContainer.SetActive(false);
+        chatContainer.SetActive(true);
+        sendMessageButton.interactable = true;
+        activeDoctorNameText.text = $"Chatting with {currentDoctorName}";
+        DisplayStatusMessage($"Connected to {currentDoctorName}.", new Color(0.4f, 1f, 0.6f));
         ClearChatHistory();
         AppendMessage("System", defaultGreeting);
 
+        // FETCH CHAT
         if (useChatApi && chatApi != null)
         {
-            if (string.IsNullOrEmpty(currentPatientId))
-            {
-                UIDebug.Warn(nameof(DoctorChatManager), "Current patient ID missing when connecting to doctor.");
-                DisplayStatusMessage("Patient ID not set. Please enter patient ID first.", Color.yellow);
-            }
-            else
-            {
-                chatApi.currentUserId = currentPatientId;
-                chatApi.currentUserType = "patient";
-                DisplayStatusMessage("Fetching chat history...", Color.white);
-                if (connectDoctorButton != null) connectDoctorButton.interactable = false;
-                chatApi.FetchMessages(currentDoctorId, "doctor", OnChatHistoryLoaded);
-                chatApi.StartAutoRefresh(currentDoctorId, "doctor");
-            }
+            connectDoctorButton.interactable = false;
+            chatApi.FetchMessages(currentDoctorId, "doctor", OnChatHistoryLoaded);
+            chatApi.StartAutoRefresh(currentDoctorId, "doctor");
         }
     }
 
