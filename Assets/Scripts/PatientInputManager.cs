@@ -66,6 +66,7 @@ public class PatientInputManager : MonoBehaviour
             PlayerPrefs.Save();
             PatientDataAPI.Instance.testPatientId = currentPatientId;
             ChatAPI.Instance.currentUserId = currentPatientId;
+            ChatAPI.Instance.currentUserType = "patient"; // ADD THIS LINE
             UpdateSavedIdDisplay();
         }
     }
@@ -116,8 +117,9 @@ public class PatientInputManager : MonoBehaviour
             patientInputPanel.SetActive(false);
         }
 
-        // Use saved ID if available, otherwise use default
         string idToUse = !string.IsNullOrEmpty(currentPatientId) ? currentPatientId : "DEFAULT_PATIENT";
+        ChatAPI.Instance.currentUserId = idToUse;
+        ChatAPI.Instance.currentUserType = "patient"; // ADD THIS LINE
         OnPatientIdSubmitted?.Invoke(idToUse);
     }
 
