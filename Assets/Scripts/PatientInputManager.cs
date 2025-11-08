@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-public class PatientInputManager : MonoBehaviour
+public class PatientInputManager : Singleton<PatientInputManager>
 {
     [Header("UI Components")]
     public GameObject patientInputPanel;
