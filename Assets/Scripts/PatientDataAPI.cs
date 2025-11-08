@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Networking;
 
 /// <summary>
 /// Main API client for Google Apps Script backend
 /// </summary>
-public class PatientDataAPI : MonoBehaviour
+public class PatientDataAPI : Singleton<PatientDataAPI>
 {
     [Header("API Configuration")]
     [Tooltip("Your Google Apps Script Web App URL")]

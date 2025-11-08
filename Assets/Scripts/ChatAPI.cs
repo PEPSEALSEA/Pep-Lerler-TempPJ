@@ -7,7 +7,7 @@ using UnityEngine.Networking;
 /// <summary>
 /// Chat API client for Unity - Handles fetching and sending chat messages
 /// </summary>
-public class ChatAPI : MonoBehaviour
+public class ChatAPI : Singleton<ChatAPI>
 {
     [Header("API Configuration")]
     [Tooltip("Your Google Apps Script Web App URL")]

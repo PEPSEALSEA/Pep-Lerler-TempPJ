@@ -9,6 +9,7 @@ public class DeviceConnectionManager : MonoBehaviour
     public Button connectButton;
     public TextMeshProUGUI connectButtonText;
     public TextMeshProUGUI connectionStatusText;
+    public Button continueButton;
 
     [Header("Settings")]
     public float connectionDelay = 1f;
@@ -19,6 +20,7 @@ public class DeviceConnectionManager : MonoBehaviour
 
     public System.Action OnDeviceConnected;
     public System.Action OnDataUpdated;
+    public System.Action OnContinueToDashboard;
 
     void Start()
     {
@@ -27,11 +29,19 @@ public class DeviceConnectionManager : MonoBehaviour
             connectButton.onClick.AddListener(OnConnectButtonClicked);
         }
 
+        if (continueButton != null)
+        {
+            continueButton.onClick.AddListener(OnContinueButtonClicked);
+            continueButton.interactable = false;
+        }
+
         UpdateConnectionUI();
+        UIDebug.Log(nameof(DeviceConnectionManager), "Initialized Device Connection Manager");
     }
 
     void OnConnectButtonClicked()
     {
+        UIDebug.Log(nameof(DeviceConnectionManager), $"Connect button clicked | Connected = {isConnected}");
         if (!isConnected)
         {
             StartCoroutine(ConnectDevice());
@@ -44,6 +54,7 @@ public class DeviceConnectionManager : MonoBehaviour
 
     IEnumerator ConnectDevice()
     {
+        UIDebug.Log(nameof(DeviceConnectionManager), "Connecting device...");
         if (connectionStatusText != null)
         {
             connectionStatusText.text = "Connecting...";
@@ -53,6 +64,12 @@ public class DeviceConnectionManager : MonoBehaviour
 
         isConnected = true;
         UpdateConnectionUI();
+
+        if (continueButton != null)
+        {
+            continueButton.interactable = true;
+        }
+        UIDebug.Log(nameof(DeviceConnectionManager), "Device connected");
 
         if (connectionStatusText != null)
         {
@@ -71,9 +88,15 @@ public class DeviceConnectionManager : MonoBehaviour
 
     void DisconnectDevice()
     {
+        UIDebug.Log(nameof(DeviceConnectionManager), "Device disconnected");
         isConnected = false;
         isUpdatingData = false;
         UpdateConnectionUI();
+
+        if (continueButton != null)
+        {
+            continueButton.interactable = false;
+        }
 
         if (connectionStatusText != null)
         {
@@ -85,6 +108,7 @@ public class DeviceConnectionManager : MonoBehaviour
     IEnumerator UpdateDataRoutine()
     {
         isUpdatingData = true;
+        UIDebug.Log(nameof(DeviceConnectionManager), "Starting data update routine");
 
         while (isConnected)
         {
@@ -98,6 +122,7 @@ public class DeviceConnectionManager : MonoBehaviour
         }
 
         isUpdatingData = false;
+        UIDebug.Log(nameof(DeviceConnectionManager), "Data update routine stopped");
     }
 
     IEnumerator HideStatusTextAfterDelay(float delay)
@@ -129,7 +154,25 @@ public class DeviceConnectionManager : MonoBehaviour
     {
         return isConnected;
     }
+
+    void OnContinueButtonClicked()
+    {
+        UIDebug.Log(nameof(DeviceConnectionManager), $"Continue clicked | Connected = {isConnected}");
+        if (!isConnected)
+        {
+            DisplayTemporaryStatus("Please connect a device first.", Color.yellow);
+            return;
+        }
+
+        OnContinueToDashboard?.Invoke();
+    }
+
+    void DisplayTemporaryStatus(string message, Color color)
+    {
+        if (connectionStatusText == null) return;
+
+        connectionStatusText.text = message;
+        connectionStatusText.color = color;
+        StartCoroutine(HideStatusTextAfterDelay(2f));
+    }
 }
-
-
-

@@ -9,6 +9,9 @@ public class RehabDashboardController : MonoBehaviour
     [Header("Patient Input")]
     public PatientInputManager patientInputManager;
 
+    [Header("Doctor Chat")]
+    public DoctorChatManager doctorChatManager;
+
     [Header("Device Connection")]
     public DeviceConnectionManager deviceConnectionManager;
 
@@ -117,6 +120,11 @@ public class RehabDashboardController : MonoBehaviour
         // Reduced logging
         // Debug.Log($"Patient ID submitted: {patientId}");
 
+        if (doctorChatManager != null)
+        {
+            doctorChatManager.SetCurrentPatientId(patientId);
+        }
+
         // Update API test patient ID
         if (patientDataAPI != null)
         {
@@ -215,6 +223,10 @@ public class RehabDashboardController : MonoBehaviour
         if (string.IsNullOrEmpty(currentPatientId))
         {
             currentPatientId = patientInputManager != null ? patientInputManager.GetCurrentPatientId() : "DEFAULT_PATIENT";
+            if (doctorChatManager != null)
+            {
+                doctorChatManager.SetCurrentPatientId(currentPatientId);
+            }
         }
 
         if (patientDataAPI == null) return;
@@ -247,6 +259,7 @@ public class RehabDashboardController : MonoBehaviour
         pulseData.Add(currentPatientData.pulse);
         movementData.Add(currentPatientData.movementMagnitude);
         sleepData.Add(currentPatientData.sleepQualityScore);
+        UIDebug.Log(nameof(RehabDashboardController), $"Generated mock data | Pulse={currentPatientData.pulse} Movement={currentPatientData.movementMagnitude:F2} Sleep={currentPatientData.sleepQualityScore:F2}");
 
         // Keep only last 24 data points
         if (pulseData.Count > 24)
@@ -262,10 +275,12 @@ public class RehabDashboardController : MonoBehaviour
             if (response.status == "success")
             {
                 Debug.Log($"[API] ✓ Data sent successfully to API | Patient: {currentPatientData.patientId} | Pulse: {Mathf.RoundToInt(currentPatientData.pulse)}");
+                UIDebug.Log(nameof(RehabDashboardController), "Mock data submitted to API");
             }
             else
             {
                 Debug.LogError($"[API] ✗ Submit failed: {response.message}");
+                UIDebug.Error(nameof(RehabDashboardController), $"Submit failed: {response.message}");
             }
         }));
 

@@ -267,7 +267,85 @@ STEP 9: TITLE AND HEADER
    - Position below title
 
 ================================================================================
-STEP 10: WIRE EVERYTHING UP IN REHABDASHBOARDCONTROLLER
+STEP 10: DOCTOR CONSULT CHAT PANEL (NEW)
+================================================================================
+
+CHAT ENTRY BUTTON:
+1. Right-click Canvas (or DashboardPanel) > UI > Button - TextMeshPro
+   - Name: "DoctorChatButton"
+   - Set button text to "Doctor Chat"
+   - Position near action buttons (top-right works well)
+   - Assign to `DoctorChatManager.chatButton`
+
+CHAT PANEL SETUP (Panel inactive by default):
+1. Right-click Canvas > UI > Panel
+   - Name: "DoctorChatPanel"
+   - Disable in Hierarchy (`SetActive(false)`)
+   - Add `DoctorChatManager` component (either to this panel or a sibling empty GameObject)
+   - Assign `DoctorChatPanel` to `DoctorChatManager.chatPanel`
+
+2. Inside `DoctorChatPanel`, create two containers:
+
+   A. Doctor Login Container (visible at start)
+      - Create Empty (name: "DoctorLoginContainer"), add layout/background as needed
+      - Add `TMP_InputField` (name: "DoctorIdInput")
+      - Add Button (name: "ConnectDoctorButton", text: "Connect")
+      - Add `TextMeshProUGUI` (name: "ConnectionStatusText")
+      - Assign to manager:
+        * doctorLoginContainer
+        * doctorIdInputField
+        * connectDoctorButton
+        * connectionStatusText
+
+   B. Chat Container (hidden until doctor connected)
+      - Create Empty (name: "ChatContainer") and set inactive initially
+      - Add `TextMeshProUGUI` (name: "ActiveDoctorNameText") for header
+      - Add `ScrollRect` with content containing `TextMeshProUGUI` (name: "ChatHistoryText")
+      - Add horizontal layout with `TMP_InputField` (name: "MessageInputField") and Button (name: "SendMessageButton")
+      - Assign to manager:
+        * chatContainer
+        * activeDoctorNameText
+        * chatHistoryText
+        * chatScrollRect (ScrollRect component)
+        * messageInputField
+        * sendMessageButton
+
+3. Add Close Button inside `DoctorChatPanel`
+   - Button (name: "CloseChatButton", text: "Close" or "X")
+   - Assign to `DoctorChatManager.closeChatButton`
+
+4. Optional tweaks
+   - Update `doctorDirectory` list in inspector with real IDs/names when available
+   - Leave "Simulate Doctor Responses" checked for placeholder replies, or disable for production
+
+================================================================================
+STEP 11: GLOBAL UI FLOW MANAGER (NEW)
+================================================================================
+
+GOAL: Control which page is visible (Patient Input → Device Connection → Dashboard → Doctor Chat).
+
+1. Create empty GameObject at root (e.g., "UIFlowManager") – keep it active.
+2. Add `AppUIFlowManager` component.
+3. Assign references:
+   - `patientInputPage` → PatientInputPanel GameObject
+   - `deviceConnectionPage` → ConnectDevicePanel GameObject
+   - `dashboardPage` → DashboardPanel GameObject
+   - `doctorChatPage` → DoctorChatPanel GameObject
+   - `bottomNavigationBar` → GameObject that holds the bottom-nav buttons (set inactive at start if you like)
+   - `patientInputManager` → same GameObject that has PatientInputManager
+   - `deviceConnectionManager` → same GameObject that has DeviceConnectionManager
+   - `doctorChatManager` → same GameObject that has DoctorChatManager
+   - `navDashboardButton`, `navDeviceButton`, `navDoctorButton` → buttons inside bottom navigation bar
+4. Ensure **only** `PatientInputPanel` is active in the scene view before pressing Play; the manager will toggle others.
+5. In `DeviceConnectionPanel`, add a "Continue" button, assign it to the new `continueButton` field on `DeviceConnectionManager`. Style it like your design ("Continue" call-to-action).
+6. Verify flow:
+   - Start → Patient ID page active, others hidden.
+   - Submit ID → manager switches to Device Connection.
+   - Connect device → Continue button becomes interactable → click to show Dashboard.
+   - Bottom nav buttons now jump between Dashboard, Devices, and Doctor Chat.
+
+================================================================================
+STEP 12: WIRE EVERYTHING UP IN REHABDASHBOARDCONTROLLER
 ================================================================================
 
 Select DashboardPanel and check RehabDashboardController component:
@@ -307,7 +385,7 @@ BUTTONS:
 ✓ Export Report Button
 
 ================================================================================
-STEP 11: FINAL CHECKLIST
+STEP 13: FINAL CHECKLIST
 ================================================================================
 
 Before testing, verify:

@@ -22,6 +22,7 @@ public class PatientInputManager : MonoBehaviour
     {
         // Load saved patient ID
         LoadSavedPatientId();
+        UIDebug.Log(nameof(PatientInputManager), $"Start | Saved ID = '{currentPatientId}'");
 
         // Setup button listeners
         if (submitButton != null)
@@ -63,6 +64,8 @@ public class PatientInputManager : MonoBehaviour
             currentPatientId = patientId;
             PlayerPrefs.SetString(savedPatientIdKey, patientId);
             PlayerPrefs.Save();
+            PatientDataAPI.Instance.testPatientId = currentPatientId;
+            ChatAPI.Instance.currentUserId = currentPatientId;
             UpdateSavedIdDisplay();
         }
     }
@@ -86,6 +89,8 @@ public class PatientInputManager : MonoBehaviour
     {
         string inputId = patientIdInput != null ? patientIdInput.text : "";
         
+        UIDebug.Log(nameof(PatientInputManager), $"Submit clicked | Input = '{inputId}'");
+
         if (string.IsNullOrEmpty(inputId))
         {
             Debug.LogWarning("Please enter a Patient ID");
@@ -104,6 +109,8 @@ public class PatientInputManager : MonoBehaviour
 
     void OnSkipClicked()
     {
+        UIDebug.Log(nameof(PatientInputManager), "Skip clicked");
+
         if (patientInputPanel != null)
         {
             patientInputPanel.SetActive(false);
@@ -124,9 +131,7 @@ public class PatientInputManager : MonoBehaviour
         if (patientInputPanel != null)
         {
             patientInputPanel.SetActive(true);
+            UIDebug.Log(nameof(PatientInputManager), "Patient input panel shown");
         }
     }
 }
-
-
-
