@@ -279,9 +279,15 @@ public class ChatAPI : Singleton<ChatAPI>
                 {
                     response = JsonUtility.FromJson<SendMessageResponse>(responseText);
 
+                    // Fallback: if 'message' is missing but status is success
+                    if (string.IsNullOrEmpty(response.message) && response.status == "success")
+                    {
+                        response.message = "Message sent successfully";
+                    }
+
                     if (response.status == "success")
                     {
-                        if (showDebugLogs) Debug.Log($"[ChatAPI] Message sent successfully! ID: {response.messageId}");
+                        if (showDebugLogs) Debug.Log($"[ChatAPI] Message sent! ID: {response.messageId}");
                         lastMessageTimestamp = response.timestamp;
                     }
                     else
@@ -291,9 +297,9 @@ public class ChatAPI : Singleton<ChatAPI>
                 }
                 catch (Exception e)
                 {
-                    Debug.LogError($"[ChatAPI] Failed to parse send response: {e.Message}");
+                    Debug.LogError($"[ChatAPI] Failed to parse send response: {e.Message}\nResponse: {responseText}");
                     response.status = "error";
-                    response.message = "Failed to parse response";
+                    response.message = "Invalid response from server";
                 }
             }
             else
@@ -368,6 +374,11 @@ public class SendMessageResponse
     public string message;
     public string messageId;
     public string timestamp;
+    public SendMessageResponse()
+    {
+        message = "";
+    }
+
 }
 
 [Serializable]
