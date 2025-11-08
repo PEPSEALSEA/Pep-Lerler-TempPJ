@@ -257,7 +257,8 @@ public class ChatAPI : Singleton<ChatAPI>
 
         if (showDebugLogs) Debug.Log($"[ChatAPI] Sending message: {jsonData}");
 
-        using (UnityWebRequest request = new UnityWebRequest(apiUrl, "POST"))
+        // ADD ?action=sendChatMessage
+        using (UnityWebRequest request = new UnityWebRequest(apiUrl + "?action=sendChatMessage", "POST"))
         {
             byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
             request.uploadHandler = new UploadHandlerRaw(bodyRaw);
@@ -280,9 +281,7 @@ public class ChatAPI : Singleton<ChatAPI>
 
                     if (response.status == "success")
                     {
-                        if (showDebugLogs) Debug.Log($"[ChatAPI] ✓ Message sent successfully! ID: {response.messageId}");
-
-                        // Update last timestamp to the sent message timestamp
+                        if (showDebugLogs) Debug.Log($"[ChatAPI] Message sent successfully! ID: {response.messageId}");
                         lastMessageTimestamp = response.timestamp;
                     }
                     else
