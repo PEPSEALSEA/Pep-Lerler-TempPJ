@@ -56,26 +56,21 @@ public abstract class Singleton<T> : MonoBehaviour where T : Singleton<T>
 
     protected virtual void Awake()
     {
-        if (_applicationIsQuitting)
+        if (_instance == null)
         {
-            // If quitting, just destroy
-            Destroy(gameObject);
-            return;
+            _instance = (T)this;
+            // Ensure this GameObject is a root object before calling DontDestroyOnLoad
+            if (transform.parent != null)
+            {
+                transform.SetParent(null, true);
+            }
+            DontDestroyOnLoad(gameObject);
+            OnSingletonAwake();
         }
-
-        lock (_lock)
+        else if (_instance != this)
         {
-            if (_instance == null)
-            {
-                _instance = (T)this;
-                DontDestroyOnLoad(gameObject);
-                OnSingletonAwake();
-            }
-            else if (_instance != this)
-            {
-                Debug.LogWarning($"[Singleton<{typeof(T)}>] Duplicate instance found and destroyed: {gameObject.name}");
-                Destroy(gameObject);
-            }
+            Debug.LogWarning($"[Singleton<{typeof(T)}>] Duplicate instance found and destroyed: {gameObject.name}");
+            Destroy(gameObject);
         }
     }
 
