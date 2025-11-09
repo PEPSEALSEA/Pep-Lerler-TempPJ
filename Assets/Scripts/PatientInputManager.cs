@@ -1,17 +1,15 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using Nova;
-
 
 public class PatientInputManager : MonoBehaviour
 {
     [Header("UI Components")]
-    public UIBlock patientInputPanel;
-    public TextField patientIdInput;
-    public Interactable submitButton;
-    public Interactable skipButton;
-    public TextBlock savedPatientIdText;
+    public GameObject patientInputPanel;
+    public TMP_InputField patientIdInput;
+    public Button submitButton;
+    public Button skipButton;
+    public TextMeshProUGUI savedPatientIdText;
 
     [Header("Settings")]
     public string savedPatientIdKey = "SavedPatientId";

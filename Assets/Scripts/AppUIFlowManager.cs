@@ -1,7 +1,6 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
-using Nova;
 
 public class AppUIFlowManager : MonoBehaviour
 {

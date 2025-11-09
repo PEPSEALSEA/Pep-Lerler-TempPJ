@@ -1,35 +1,32 @@
-﻿using Nova;
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Networking;
 using UnityEngine.UI;
-using UnityEngine.UIElements;
-
+using UnityEngine.Networking;
 
 public class DoctorChatManager : MonoBehaviour
 {
     [Header("Chat Entry Points")]
-    public Interactable chatButton;
-    public UIBlock chatPanel;
-    public Interactable closeChatButton;
+    public Button chatButton;
+    public GameObject chatPanel;
+    public Button closeChatButton;
 
     [Header("Doctor Connection UI")]
-    public TextField doctorIdInputField;
-    public Interactable connectDoctorButton;
-    public TextBlock connectionStatusText;
-    public UIBlock doctorLoginContainer;
+    public TMP_InputField doctorIdInputField;
+    public Button connectDoctorButton;
+    public TextMeshProUGUI connectionStatusText;
+    public GameObject doctorLoginContainer;
 
     [Header("Chat UI")]
-    public UIBlock chatContainer;
-    public TextBlock activeDoctorNameText;
-    public TextField messageInputField;
-    public Interactable sendMessageButton;
-    public TextBlock chatHistoryText;
-    public ScrollView chatScrollRect;
+    public GameObject chatContainer;
+    public TextMeshProUGUI activeDoctorNameText;
+    public TMP_InputField messageInputField;
+    public Button sendMessageButton;
+    public TextMeshProUGUI chatHistoryText;
+    public ScrollRect chatScrollRect;
 
     [Header("Input Field Settings")]
     public int maxInputLines = 4;

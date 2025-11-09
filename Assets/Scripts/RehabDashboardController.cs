@@ -3,7 +3,6 @@ using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
 using System;
-using Nova;
 
 public class RehabDashboardController : MonoBehaviour
 {
@@ -20,35 +19,35 @@ public class RehabDashboardController : MonoBehaviour
     public PatientDataAPI patientDataAPI;
 
     [Header("Top Metrics")]
-    public TextBlock pulseValueText;
-    public TextBlock pulseChangeText;
-    public UIBlock pulseFillBar;
+    public TextMeshProUGUI pulseValueText;
+    public TextMeshProUGUI pulseChangeText;
+    public Image pulseFillBar;
 
-    public TextBlock movementValueText;
-    public TextBlock movementChangeText;
-    public UIBlock movementFillBar;
+    public TextMeshProUGUI movementValueText;
+    public TextMeshProUGUI movementChangeText;
+    public Image movementFillBar;
 
-    public TextBlock sleepValueText;
-    public TextBlock sleepChangeText;
-    public UIBlock sleepFillBar;
+    public TextMeshProUGUI sleepValueText;
+    public TextMeshProUGUI sleepChangeText;
+    public Image sleepFillBar;
 
     [Header("Joint Angles")]
-    public UIBlock kneeAngleBar;
-    public UIBlock elbowAngleBar;
-    public UIBlock shoulderAngleBar;
-    public UIBlock hipAngleBar;
+    public CircularProgressBar kneeAngleBar;
+    public CircularProgressBar elbowAngleBar;
+    public CircularProgressBar shoulderAngleBar;
+    public CircularProgressBar hipAngleBar;
 
     [Header("Activity Graph")]
-    public UIBlock lineGraph;
-    public Interactable toggleAll;
-    public Interactable togglePulse;
-    public Interactable toggleMovement;
-    public Interactable toggleSleep;
+    public LineGraphRenderer lineGraph;
+    public Toggle toggleAll;
+    public Toggle togglePulse;
+    public Toggle toggleMovement;
+    public Toggle toggleSleep;
 
     [Header("UI Panels")]
-    public UIBlock dashboardPanel;
-    public Interactable refreshButton;
-    public Interactable exportReportButton;
+    public GameObject dashboardPanel;
+    public Button refreshButton;
+    public Button exportReportButton;
 
     private PatientData currentPatientData;
     private PatientData previousPatientData;
