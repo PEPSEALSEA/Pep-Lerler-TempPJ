@@ -1,15 +1,14 @@
-using Nova;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class PatientInputManager : MonoBehaviour
 {
     [Header("UI Components")]
-    public UIBlock patientInputPanel;
+    public GameObject patientInputPanel;
     public InputField patientIdInput;
-    public UIBlock submitBlock;
-    public UIBlock skipBlock;
-    public TextBlock savedPatientIdText;
+    public Button submitButton;
+    public Button skipButton;
+    public Text savedPatientIdText;
 
     [Header("Settings")]
     public string savedPatientIdKey = "SavedPatientId";
@@ -20,6 +19,7 @@ public class PatientInputManager : MonoBehaviour
     public DoctorChatManager doctorChatManager;
 
     private string currentPatientId = "";
+
     public System.Action<string> OnPatientIdSubmitted;
 
     void Start()
@@ -27,23 +27,16 @@ public class PatientInputManager : MonoBehaviour
         LoadSavedPatientId();
         UIDebug.Log(nameof(PatientInputManager), $"Start | Saved ID = '{currentPatientId}'");
 
-        if (submitBlock != null)
-            submitBlock.AddGestureHandler<Gesture.OnClick>(OnSubmitClicked);
-        if (skipBlock != null)
-            skipBlock.AddGestureHandler<Gesture.OnClick>(OnSkipClicked);
+        if (submitButton != null)
+            submitButton.onClick.AddListener(OnSubmitClicked);
+
+        if (skipButton != null)
+            skipButton.onClick.AddListener(OnSkipClicked);
 
         if (patientInputPanel != null)
-            patientInputPanel.gameObject.SetActive(string.IsNullOrEmpty(currentPatientId));
+            patientInputPanel.SetActive(string.IsNullOrEmpty(currentPatientId));
 
         UpdateSavedIdDisplay();
-    }
-
-    void OnDestroy()
-    {
-        if (submitBlock != null)
-            submitBlock.RemoveGestureHandler<Gesture.OnClick>(OnSubmitClicked);
-        if (skipBlock != null)
-            skipBlock.RemoveGestureHandler<Gesture.OnClick>(OnSkipClicked);
     }
 
     void LoadSavedPatientId()
@@ -79,13 +72,13 @@ public class PatientInputManager : MonoBehaviour
     {
         if (savedPatientIdText != null)
         {
-            savedPatientIdText.Text = !string.IsNullOrEmpty(currentPatientId)
+            savedPatientIdText.text = !string.IsNullOrEmpty(currentPatientId)
                 ? $"Saved Patient ID: {currentPatientId}"
                 : "No saved Patient ID";
         }
     }
 
-    void OnSubmitClicked(Gesture.OnClick evt)
+    void OnSubmitClicked()
     {
         string inputId = patientIdInput != null ? patientIdInput.text : "";
         UIDebug.Log(nameof(PatientInputManager), $"Submit clicked | Input = '{inputId}'");
@@ -96,18 +89,18 @@ public class PatientInputManager : MonoBehaviour
         }
         SavePatientId(inputId);
         if (patientInputPanel != null)
-            patientInputPanel.gameObject.SetActive(false);
+            patientInputPanel.SetActive(false);
         OnPatientIdSubmitted?.Invoke(currentPatientId);
         EnsureDependencies();
         if (doctorChatManager != null)
             doctorChatManager.SetCurrentPatientId(currentPatientId);
     }
 
-    void OnSkipClicked(Gesture.OnClick evt)
+    void OnSkipClicked()
     {
         UIDebug.Log(nameof(PatientInputManager), "Skip clicked");
         if (patientInputPanel != null)
-            patientInputPanel.gameObject.SetActive(false);
+            patientInputPanel.SetActive(false);
         string idToUse = !string.IsNullOrEmpty(currentPatientId) ? currentPatientId : "DEFAULT_PATIENT";
         EnsureDependencies();
         if (chatApi != null)
@@ -129,7 +122,7 @@ public class PatientInputManager : MonoBehaviour
     {
         if (patientInputPanel != null)
         {
-            patientInputPanel.gameObject.SetActive(true);
+            patientInputPanel.SetActive(true);
             UIDebug.Log(nameof(PatientInputManager), "Patient input panel shown");
         }
     }
