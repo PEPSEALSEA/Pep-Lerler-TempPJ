@@ -2,17 +2,18 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections;
+using Nova;
 
 public class DeviceConnectionManager : MonoBehaviour
 {
     [Header("UI Components")]
-    public Button connectButton;
-    public TextMeshProUGUI connectButtonText;
-    public TextMeshProUGUI connectionStatusText;
-    public Button continueButton;
+    public UIBlock connectButton;
+    public TextBlock connectButtonText;
+    public TextBlock connectionStatusText;
+    public UIBlock continueButton;
 
     [Header("Connection Icon")]
-    public Image connectionIconImage;
+    public UIBlock connectionIconImage;
     public Sprite disconnectedIconSprite;
     public Sprite connectedIconSprite;
 
