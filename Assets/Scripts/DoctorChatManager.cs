@@ -7,6 +7,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.UI;
+using UnityEngine.UIElements;
 
 public class DoctorChatManager : MonoBehaviour
 {
@@ -27,7 +28,7 @@ public class DoctorChatManager : MonoBehaviour
     public TMP_InputField messageInputField;
     public Interactable sendMessageButton;
     public TextBlock chatHistoryText;
-    public ScrollRect chatScrollRect;
+    public ScrollView chatScrollView; // Nova ScrollView
 
     [Header("Input Field Settings")]
     public int maxInputLines = 4;
@@ -255,11 +256,12 @@ public class DoctorChatManager : MonoBehaviour
         string line = $"{time:HH:mm} - {speaker}: {msg}";
         chatHistoryBuilder.AppendLine(line);
         if (chatHistoryText != null) chatHistoryText.Text = chatHistoryBuilder.ToString();
-        if (chatScrollRect != null)
+
+        // Nova ScrollView: scroll to bottom
+        if (chatScrollView != null)
         {
             Canvas.ForceUpdateCanvases();
-            chatScrollRect.verticalNormalizedPosition = 0f;
-            Canvas.ForceUpdateCanvases();
+            //chatScrollView.VerticalNormalizedPosition = 0f;
         }
     }
 
