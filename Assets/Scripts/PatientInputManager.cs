@@ -1,14 +1,15 @@
 using UnityEngine;
-using UnityEngine.UI;
+using TMPro;
+using Nova;
 
 public class PatientInputManager : MonoBehaviour
 {
     [Header("UI Components")]
-    public GameObject patientInputPanel;
-    public InputField patientIdInput;
-    public Button submitButton;
-    public Button skipButton;
-    public Text savedPatientIdText;
+    public UIBlock patientInputPanel;
+    public TMP_InputField patientIdInput;
+    public Interactable submitButton;
+    public Interactable skipButton;
+    public TextBlock savedPatientIdText;
 
     [Header("Settings")]
     public string savedPatientIdKey = "SavedPatientId";
@@ -19,24 +20,23 @@ public class PatientInputManager : MonoBehaviour
     public DoctorChatManager doctorChatManager;
 
     private string currentPatientId = "";
-
     public System.Action<string> OnPatientIdSubmitted;
 
     void Start()
     {
         LoadSavedPatientId();
-        UIDebug.Log(nameof(PatientInputManager), $"Start | Saved ID = '{currentPatientId}'");
-
-        if (submitButton != null)
-            submitButton.onClick.AddListener(OnSubmitClicked);
-
-        if (skipButton != null)
-            skipButton.onClick.AddListener(OnSkipClicked);
-
         if (patientInputPanel != null)
-            patientInputPanel.SetActive(string.IsNullOrEmpty(currentPatientId));
-
+            patientInputPanel.gameObject.SetActive(string.IsNullOrEmpty(currentPatientId));
         UpdateSavedIdDisplay();
+        AssignButtonListeners();
+    }
+
+    void AssignButtonListeners()
+    {
+        if (submitButton?.UIBlock != null)
+            submitButton.UIBlock.AddGestureHandler<Gesture.OnClick>(evt => OnSubmitClicked());
+        if (skipButton?.UIBlock != null)
+            skipButton.UIBlock.AddGestureHandler<Gesture.OnClick>(evt => OnSkipClicked());
     }
 
     void LoadSavedPatientId()
@@ -44,96 +44,70 @@ public class PatientInputManager : MonoBehaviour
         if (PlayerPrefs.HasKey(savedPatientIdKey))
         {
             currentPatientId = PlayerPrefs.GetString(savedPatientIdKey);
-            if (patientIdInput != null && !string.IsNullOrEmpty(currentPatientId))
-                patientIdInput.text = currentPatientId;
+            if (patientIdInput != null) patientIdInput.text = currentPatientId;
         }
     }
 
-    void SavePatientId(string patientId)
+    void SavePatientId(string id)
     {
-        if (!string.IsNullOrEmpty(patientId))
+        if (string.IsNullOrEmpty(id)) return;
+        currentPatientId = id;
+        PlayerPrefs.SetString(savedPatientIdKey, id);
+        PlayerPrefs.Save();
+        EnsureDependencies();
+        patientDataAPI.testPatientId = id;
+        if (chatApi != null)
         {
-            currentPatientId = patientId;
-            PlayerPrefs.SetString(savedPatientIdKey, patientId);
-            PlayerPrefs.Save();
-            EnsureDependencies();
-            if (patientDataAPI != null)
-                patientDataAPI.testPatientId = currentPatientId;
-            if (chatApi != null)
-            {
-                chatApi.currentUserId = currentPatientId;
-                chatApi.currentUserType = "patient";
-            }
-            UpdateSavedIdDisplay();
+            chatApi.currentUserId = id;
+            chatApi.currentUserType = "patient";
         }
+        UpdateSavedIdDisplay();
     }
 
     void UpdateSavedIdDisplay()
     {
         if (savedPatientIdText != null)
-        {
-            savedPatientIdText.text = !string.IsNullOrEmpty(currentPatientId)
+            savedPatientIdText.Text = !string.IsNullOrEmpty(currentPatientId)
                 ? $"Saved Patient ID: {currentPatientId}"
                 : "No saved Patient ID";
-        }
     }
 
     void OnSubmitClicked()
     {
-        string inputId = patientIdInput != null ? patientIdInput.text : "";
-        UIDebug.Log(nameof(PatientInputManager), $"Submit clicked | Input = '{inputId}'");
-        if (string.IsNullOrEmpty(inputId))
-        {
-            Debug.LogWarning("Please enter a Patient ID");
-            return;
-        }
-        SavePatientId(inputId);
-        if (patientInputPanel != null)
-            patientInputPanel.SetActive(false);
-        OnPatientIdSubmitted?.Invoke(currentPatientId);
-        EnsureDependencies();
-        if (doctorChatManager != null)
-            doctorChatManager.SetCurrentPatientId(currentPatientId);
+        string id = patientIdInput?.text.Trim() ?? "";
+        if (string.IsNullOrEmpty(id)) return;
+        SavePatientId(id);
+        if (patientInputPanel != null) patientInputPanel.gameObject.SetActive(false);
+        OnPatientIdSubmitted?.Invoke(id);
+        doctorChatManager?.SetCurrentPatientId(id);
     }
 
     void OnSkipClicked()
     {
-        UIDebug.Log(nameof(PatientInputManager), "Skip clicked");
-        if (patientInputPanel != null)
-            patientInputPanel.SetActive(false);
-        string idToUse = !string.IsNullOrEmpty(currentPatientId) ? currentPatientId : "DEFAULT_PATIENT";
+        if (patientInputPanel != null) patientInputPanel.gameObject.SetActive(false);
+        string id = !string.IsNullOrEmpty(currentPatientId) ? currentPatientId : "DEFAULT_PATIENT";
         EnsureDependencies();
         if (chatApi != null)
         {
-            chatApi.currentUserId = idToUse;
+            chatApi.currentUserId = id;
             chatApi.currentUserType = "patient";
         }
-        OnPatientIdSubmitted?.Invoke(idToUse);
-        if (doctorChatManager != null)
-            doctorChatManager.SetCurrentPatientId(idToUse);
+        OnPatientIdSubmitted?.Invoke(id);
+        doctorChatManager?.SetCurrentPatientId(id);
     }
 
-    public string GetCurrentPatientId()
-    {
-        return currentPatientId;
-    }
+    public string GetCurrentPatientId() => currentPatientId;
 
     public void ShowInputPanel()
     {
         if (patientInputPanel != null)
-        {
-            patientInputPanel.SetActive(true);
-            UIDebug.Log(nameof(PatientInputManager), "Patient input panel shown");
-        }
+            patientInputPanel.gameObject.SetActive(true);
     }
 
     void EnsureDependencies()
     {
-        if (patientDataAPI == null)
-            patientDataAPI = FindObjectOfType<PatientDataAPI>();
-        if (chatApi == null)
-            chatApi = FindObjectOfType<ChatAPI>();
-        if (doctorChatManager == null)
-            doctorChatManager = FindObjectOfType<DoctorChatManager>();
+        if (patientDataAPI == null) patientDataAPI = FindObjectOfType<PatientDataAPI>();
+        if (chatApi == null) chatApi = FindObjectOfType<ChatAPI>();
+        if (doctorChatManager == null) doctorChatManager = FindObjectOfType<DoctorChatManager>();
     }
 }
