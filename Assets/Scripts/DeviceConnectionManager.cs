@@ -1,19 +1,17 @@
 using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
 using System.Collections;
 using Nova;
 
 public class DeviceConnectionManager : MonoBehaviour
 {
     [Header("UI Components")]
-    public UIBlock connectButton;
+    public Interactable connectButton;
     public TextBlock connectButtonText;
     public TextBlock connectionStatusText;
-    public UIBlock continueButton;
+    public Interactable continueButton;
 
     [Header("Connection Icon")]
-    public UIBlock connectionIconImage;
+    public UIBlock2D connectionIconImage;
     public Sprite disconnectedIconSprite;
     public Sprite connectedIconSprite;
 
@@ -33,121 +31,63 @@ public class DeviceConnectionManager : MonoBehaviour
 
     void Start()
     {
-        if (connectButton != null)
+        if (connectButton?.UIBlock != null)
+            connectButton.UIBlock.AddGestureHandler<Gesture.OnClick>(OnConnectButtonClicked);
+        if (continueButton?.UIBlock != null)
         {
-            connectButton.onClick.AddListener(OnConnectButtonClicked);
+            continueButton.UIBlock.AddGestureHandler<Gesture.OnClick>(OnContinueButtonClicked);
+            SetInteractable(continueButton, false);
         }
-
-        if (continueButton != null)
-        {
-            continueButton.onClick.AddListener(OnContinueButtonClicked);
-            continueButton.interactable = false;
-        }
-
         UpdateConnectionUI();
-        UIDebug.Log(nameof(DeviceConnectionManager), "Initialized Device Connection Manager");
     }
 
-    void OnConnectButtonClicked()
+    void OnConnectButtonClicked(Gesture.OnClick evt)
     {
-        UIDebug.Log(nameof(DeviceConnectionManager), $"Connect button clicked | Connected = {isConnected}");
-        if (!isConnected)
-        {
-            StartCoroutine(ConnectDevice());
-        }
-        else
-        {
-            DisconnectDevice();
-        }
+        if (!isConnected) StartCoroutine(ConnectDevice());
+        else DisconnectDevice();
     }
 
     IEnumerator ConnectDevice()
     {
-        UIDebug.Log(nameof(DeviceConnectionManager), "Connecting device...");
-
-        // Show connecting status
         if (connectionStatusText != null)
         {
-            connectionStatusText.text = "Connecting...";
-            connectionStatusText.color = Color.yellow;
+            connectionStatusText.Text = "Connecting...";
+            connectionStatusText.TMP.color = Color.yellow;
         }
-
-        // Disable button during connection
-        if (connectButton != null)
-        {
-            connectButton.interactable = false;
-        }
-
-        // Start pulsing animation during connection
+        SetInteractable(connectButton, false);
         if (animateIconOnConnect && connectionIconImage != null)
-        {
             StartCoroutine(PulseIconWhileConnecting());
-        }
 
         yield return new WaitForSeconds(connectionDelay);
 
         isConnected = true;
         UpdateConnectionUI();
-
-        // Re-enable button
-        if (connectButton != null)
-        {
-            connectButton.interactable = true;
-        }
-
-        if (continueButton != null)
-        {
-            continueButton.interactable = true;
-        }
-
-        UIDebug.Log(nameof(DeviceConnectionManager), "Device connected");
+        SetInteractable(connectButton, true);
+        SetInteractable(continueButton, true);
 
         if (connectionStatusText != null)
         {
-            connectionStatusText.text = "Connected!";
-            connectionStatusText.color = new Color(0.4f, 1f, 0.6f); // Green
+            connectionStatusText.Text = "Connected!";
+            connectionStatusText.TMP.color = new Color(0.4f, 1f, 0.6f);
             StartCoroutine(HideStatusTextAfterDelay(2f));
         }
-
         OnDeviceConnected?.Invoke();
-
-        // Start updating data
-        if (!isUpdatingData)
-        {
-            StartCoroutine(UpdateDataRoutine());
-        }
-
-        // Optional: Pulse icon briefly on successful connection
+        if (!isUpdatingData) StartCoroutine(UpdateDataRoutine());
         if (animateIconOnConnect && connectionIconImage != null)
-        {
             StartCoroutine(PulseIconOnce());
-        }
     }
 
     void DisconnectDevice()
     {
-        UIDebug.Log(nameof(DeviceConnectionManager), "Device disconnected");
         isConnected = false;
         isUpdatingData = false;
-
-        // Stop any icon animations
-        if (iconPulseCoroutine != null)
-        {
-            StopCoroutine(iconPulseCoroutine);
-            iconPulseCoroutine = null;
-        }
-
+        if (iconPulseCoroutine != null) StopCoroutine(iconPulseCoroutine);
         UpdateConnectionUI();
-
-        if (continueButton != null)
-        {
-            continueButton.interactable = false;
-        }
-
+        SetInteractable(continueButton, false);
         if (connectionStatusText != null)
         {
-            connectionStatusText.text = "Disconnected";
-            connectionStatusText.color = new Color(1f, 0.5f, 0.3f); // Orange
+            connectionStatusText.Text = "Disconnected";
+            connectionStatusText.TMP.color = new Color(1f, 0.5f, 0.3f);
             StartCoroutine(HideStatusTextAfterDelay(2f));
         }
     }
@@ -155,149 +95,88 @@ public class DeviceConnectionManager : MonoBehaviour
     IEnumerator UpdateDataRoutine()
     {
         isUpdatingData = true;
-        UIDebug.Log(nameof(DeviceConnectionManager), "Starting data update routine");
-
         while (isConnected)
         {
             yield return new WaitForSeconds(dataUpdateInterval);
-
-            if (isConnected)
-            {
-                // Generate random data and notify
-                OnDataUpdated?.Invoke();
-            }
+            OnDataUpdated?.Invoke();
         }
-
         isUpdatingData = false;
-        UIDebug.Log(nameof(DeviceConnectionManager), "Data update routine stopped");
     }
 
     IEnumerator HideStatusTextAfterDelay(float delay)
     {
         yield return new WaitForSeconds(delay);
         if (connectionStatusText != null && isConnected)
-        {
-            connectionStatusText.text = "";
-        }
+            connectionStatusText.Text = "";
     }
 
     IEnumerator PulseIconWhileConnecting()
     {
         if (connectionIconImage == null) yield break;
-
-        float timer = 0f;
-        Vector3 originalScale = connectionIconImage.transform.localScale;
-
+        Vector3 orig = connectionIconImage.transform.localScale;
+        float t = 0;
         while (!isConnected)
         {
-            timer += Time.deltaTime * iconPulseSpeed;
-            float scale = 1f + Mathf.Sin(timer * Mathf.PI * 2f) * 0.15f;
-            connectionIconImage.transform.localScale = originalScale * scale;
+            t += Time.deltaTime * iconPulseSpeed;
+            float s = 1f + Mathf.Sin(t * Mathf.PI * 2f) * 0.15f;
+            connectionIconImage.transform.localScale = orig * s;
             yield return null;
         }
-
-        // Reset scale
-        connectionIconImage.transform.localScale = originalScale;
+        connectionIconImage.transform.localScale = orig;
     }
 
     IEnumerator PulseIconOnce()
     {
         if (connectionIconImage == null) yield break;
-
-        Vector3 originalScale = connectionIconImage.transform.localScale;
-        float duration = 0.3f;
-        float elapsed = 0f;
-
-        // Scale up
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            float scale = Mathf.Lerp(1f, 1.2f, elapsed / duration);
-            connectionIconImage.transform.localScale = originalScale * scale;
-            yield return null;
-        }
-
-        elapsed = 0f;
-
-        // Scale back down
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            float scale = Mathf.Lerp(1.2f, 1f, elapsed / duration);
-            connectionIconImage.transform.localScale = originalScale * scale;
-            yield return null;
-        }
-
-        connectionIconImage.transform.localScale = originalScale;
+        Vector3 orig = connectionIconImage.transform.localScale;
+        float d = 0.3f, e = 0;
+        while (e < d) { e += Time.deltaTime; connectionIconImage.transform.localScale = orig * Mathf.Lerp(1f, 1.2f, e / d); yield return null; }
+        e = 0;
+        while (e < d) { e += Time.deltaTime; connectionIconImage.transform.localScale = orig * Mathf.Lerp(1.2f, 1f, e / d); yield return null; }
+        connectionIconImage.transform.localScale = orig;
     }
 
     void UpdateConnectionUI()
     {
-        // Update button text
         if (connectButtonText != null)
+            connectButtonText.Text = isConnected ? "Disconnect" : "Connect Device";
+
+        if (connectButton?.UIBlock != null)
         {
-            connectButtonText.text = isConnected ? "Disconnect" : "Connect Device";
+            connectButton.UIBlock.Color = isConnected ? new Color(0.8f, 0.3f, 0.3f) : new Color(0.2f, 0.5f, 1f);
         }
 
-        // Update button color
-        if (connectButton != null)
-        {
-            ColorBlock colors = connectButton.colors;
-            colors.normalColor = isConnected ? new Color(0.8f, 0.3f, 0.3f) : new Color(0.2f, 0.5f, 1f);
-            connectButton.colors = colors;
-        }
-
-        // Update connection icon sprite
         if (connectionIconImage != null)
         {
-            if (isConnected && connectedIconSprite != null)
-            {
-                connectionIconImage.sprite = connectedIconSprite;
-                UIDebug.Log(nameof(DeviceConnectionManager), "Icon changed to CONNECTED sprite");
-            }
-            else if (!isConnected && disconnectedIconSprite != null)
-            {
-                connectionIconImage.sprite = disconnectedIconSprite;
-                UIDebug.Log(nameof(DeviceConnectionManager), "Icon changed to DISCONNECTED sprite");
-            }
-
-            // Optional: Change icon color based on connection status
-            connectionIconImage.color = isConnected ? new Color(0.4f, 1f, 0.6f) : Color.white;
+            connectionIconImage.SetImage(isConnected ? connectedIconSprite : disconnectedIconSprite);
+            connectionIconImage.Color = isConnected ? new Color(0.4f, 1f, 0.6f) : Color.white;
         }
     }
 
-    public bool IsConnected()
-    {
-        return isConnected;
-    }
+    public bool IsConnected() => isConnected;
 
-    void OnContinueButtonClicked()
+    void OnContinueButtonClicked(Gesture.OnClick evt)
     {
-        UIDebug.Log(nameof(DeviceConnectionManager), $"Continue clicked | Connected = {isConnected}");
         if (!isConnected)
         {
             DisplayTemporaryStatus("Please connect a device first.", Color.yellow);
             return;
         }
-
         OnContinueToDashboard?.Invoke();
     }
 
-    void DisplayTemporaryStatus(string message, Color color)
+    void DisplayTemporaryStatus(string msg, Color c)
     {
         if (connectionStatusText == null) return;
-
-        connectionStatusText.text = message;
-        connectionStatusText.color = color;
+        connectionStatusText.Text = msg;
+        connectionStatusText.TMP.color = c;
         StartCoroutine(HideStatusTextAfterDelay(2f));
     }
 
+    void SetInteractable(Interactable b, bool on) => b.enabled = on;
+
     void OnDestroy()
     {
-        // Clean up coroutines
-        if (iconPulseCoroutine != null)
-        {
-            StopCoroutine(iconPulseCoroutine);
-        }
+        if (iconPulseCoroutine != null) StopCoroutine(iconPulseCoroutine);
     }
 }

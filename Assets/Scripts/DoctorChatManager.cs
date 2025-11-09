@@ -5,19 +5,19 @@ using System.Collections.Generic;
 using System.Text;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Networking;
 using UnityEngine.UI;
-
 
 public class DoctorChatManager : MonoBehaviour
 {
     [Header("Chat Entry Points")]
-    public Button chatButton;
+    public Interactable chatButton;
     public UIBlock chatPanel;
-    public Button closeChatButton;
+    public Interactable closeChatButton;
 
     [Header("Doctor Connection UI")]
     public TMP_InputField doctorIdInputField;
-    public Button connectDoctorButton;
+    public Interactable connectDoctorButton;
     public TextBlock connectionStatusText;
     public UIBlock doctorLoginContainer;
 
@@ -25,7 +25,7 @@ public class DoctorChatManager : MonoBehaviour
     public UIBlock chatContainer;
     public TextBlock activeDoctorNameText;
     public TMP_InputField messageInputField;
-    public Button sendMessageButton;
+    public Interactable sendMessageButton;
     public TextBlock chatHistoryText;
     public ScrollRect chatScrollRect;
 
@@ -44,18 +44,11 @@ public class DoctorChatManager : MonoBehaviour
     public bool fetchDoctorNameFromApi = true;
 
     [Header("Chat Settings")]
-    [TextArea]
-    public string defaultGreeting = "Doctor consult chat connected.";
+    [TextArea] public string defaultGreeting = "Doctor consult chat connected.";
     public bool simulateDoctorResponses = false;
     public float simulatedResponseDelay = 1.5f;
 
-    [Serializable]
-    public class DoctorEntry
-    {
-        public string doctorId;
-        public string doctorName;
-    }
-
+    [Serializable] public class DoctorEntry { public string doctorId; public string doctorName; }
     public List<DoctorEntry> doctorDirectory = new List<DoctorEntry>
     {
         new DoctorEntry { doctorId = "DOC001", doctorName = "Dr. Alice Johnson" },
@@ -65,7 +58,6 @@ public class DoctorChatManager : MonoBehaviour
 
     private readonly Dictionary<string, DoctorEntry> doctorLookup = new Dictionary<string, DoctorEntry>();
     private readonly StringBuilder chatHistoryBuilder = new StringBuilder();
-
     private bool isDoctorConnected = false;
     private string currentDoctorId = string.Empty;
     private string currentDoctorName = string.Empty;
@@ -73,267 +65,143 @@ public class DoctorChatManager : MonoBehaviour
 
     void Awake()
     {
-        // Build local lookup table as fallback
         doctorLookup.Clear();
         foreach (var entry in doctorDirectory)
         {
-            if (entry == null) continue;
-            if (string.IsNullOrWhiteSpace(entry.doctorId)) continue;
-
+            if (entry == null || string.IsNullOrWhiteSpace(entry.doctorId)) continue;
             string key = entry.doctorId.Trim().ToUpperInvariant();
-            if (!doctorLookup.ContainsKey(key))
-            {
-                doctorLookup.Add(key, entry);
-            }
+            if (!doctorLookup.ContainsKey(key)) doctorLookup.Add(key, entry);
         }
     }
 
     void Start()
     {
         EnsureDependencies();
-
-        if (chatPanel != null)
-        {
-            chatPanel.SetActive(false);
-        }
-
-        if (chatContainer != null)
-        {
-            chatContainer.SetActive(false);
-        }
-
-        if (sendMessageButton != null)
-        {
-            sendMessageButton.interactable = false;
-        }
-
+        if (chatPanel != null) chatPanel.gameObject.SetActive(false);
+        if (chatContainer != null) chatContainer.gameObject.SetActive(false);
+        if (sendMessageButton != null) sendMessageButton.enabled = false;
         AssignButtonListeners();
         ClearChatHistory();
     }
 
     void AssignButtonListeners()
     {
-        if (chatButton != null)
-        {
-            chatButton.onClick.AddListener(ShowChatPanel);
-            UIDebug.Log(nameof(DoctorChatManager), "Chat open button listener assigned");
-        }
-
-        if (closeChatButton != null)
-        {
-            closeChatButton.onClick.AddListener(HideChatPanel);
-        }
-
-        if (connectDoctorButton != null)
-        {
-            connectDoctorButton.onClick.AddListener(AttemptDoctorConnection);
-        }
-
-        if (sendMessageButton != null)
-        {
-            sendMessageButton.onClick.AddListener(SendMessage);
-        }
+        if (chatButton?.UIBlock != null)
+            chatButton.UIBlock.AddGestureHandler<Gesture.OnClick>(evt => ShowChatPanel());
+        if (closeChatButton?.UIBlock != null)
+            closeChatButton.UIBlock.AddGestureHandler<Gesture.OnClick>(evt => HideChatPanel());
+        if (connectDoctorButton?.UIBlock != null)
+            connectDoctorButton.UIBlock.AddGestureHandler<Gesture.OnClick>(evt => AttemptDoctorConnection());
+        if (sendMessageButton?.UIBlock != null)
+            sendMessageButton.UIBlock.AddGestureHandler<Gesture.OnClick>(evt => SendMessage());
     }
 
     public void ShowChatPanel()
     {
-        UIDebug.Log(nameof(DoctorChatManager), "ShowChatPanel");
-        if (chatPanel != null)
-        {
-            chatPanel.SetActive(true);
-        }
-
-        if (doctorLoginContainer != null)
-        {
-            doctorLoginContainer.SetActive(true);
-        }
-
-        if (chatContainer != null)
-        {
-            chatContainer.SetActive(false);
-        }
-
+        if (chatPanel != null) chatPanel.gameObject.SetActive(true);
+        if (doctorLoginContainer != null) doctorLoginContainer.gameObject.SetActive(true);
+        if (chatContainer != null) chatContainer.gameObject.SetActive(false);
         if (connectionStatusText != null)
         {
-            connectionStatusText.text = "Enter a doctor ID to start chat.";
-            connectionStatusText.color = Color.white;
+            connectionStatusText.Text = "Enter a doctor ID to start chat.";
+            connectionStatusText.TMP.color = Color.white;
         }
-
         ClearChatHistory();
         ResetChatState();
     }
 
     public void HideChatPanel()
     {
-        UIDebug.Log(nameof(DoctorChatManager), "HideChatPanel");
-        if (chatPanel != null)
-        {
-            chatPanel.SetActive(false);
-        }
-
-        EnsureDependencies();
-
-        if (useChatApi && chatApi != null)
-        {
-            chatApi.StopAutoRefresh();
-        }
+        if (chatPanel != null) chatPanel.gameObject.SetActive(false);
+        if (useChatApi && chatApi != null) chatApi.StopAutoRefresh();
     }
 
     void AttemptDoctorConnection()
     {
-        // GET PATIENT ID FIRST
-        EnsureDependencies();
-        currentPatientId = patientInputManager != null ? patientInputManager.GetCurrentPatientId() : string.Empty;
+        currentPatientId = patientInputManager?.GetCurrentPatientId() ?? string.Empty;
         if (string.IsNullOrEmpty(currentPatientId))
         {
-            UIDebug.Warn(nameof(DoctorChatManager), "Current patient ID missing when connecting to doctor.");
             DisplayStatusMessage("Please enter your Patient ID first.", Color.yellow);
             return;
         }
-
         string enteredId = doctorIdInputField?.text.Trim() ?? "";
         if (string.IsNullOrEmpty(enteredId))
         {
             DisplayStatusMessage("Please enter a doctor ID.", Color.yellow);
             return;
         }
-
         currentDoctorId = enteredId.Trim();
-
-        // Disable button while connecting
-        if (connectDoctorButton != null) connectDoctorButton.interactable = false;
+        if (connectDoctorButton != null) connectDoctorButton.enabled = false;
         DisplayStatusMessage("Connecting to doctor...", Color.yellow);
 
-        // Fetch doctor name from API or use fallback
         if (fetchDoctorNameFromApi)
-        {
             StartCoroutine(FetchDoctorNameAndConnect(currentDoctorId));
-        }
         else
-        {
-            // Use local lookup as fallback
-            string upperKey = currentDoctorId.ToUpperInvariant();
-            if (doctorLookup.TryGetValue(upperKey, out var doctorInfo))
-            {
-                currentDoctorName = doctorInfo.doctorName;
-            }
-            else
-            {
-                currentDoctorName = $"Doctor {currentDoctorId}";
-            }
-
-            CompleteDoctorConnection();
-        }
+            UseFallbackDoctorName();
     }
 
     IEnumerator FetchDoctorNameAndConnect(string doctorId)
     {
         string url = $"{apiUrl}?action=getDoctorName&doctorId={UnityWebRequest.EscapeURL(doctorId)}";
-
-        UIDebug.Log(nameof(DoctorChatManager), $"Fetching doctor name from: {url}");
-
         using (UnityWebRequest request = UnityWebRequest.Get(url))
         {
             request.SetRequestHeader("Accept", "application/json");
             yield return request.SendWebRequest();
-
             bool success = false;
-
             if (request.result == UnityWebRequest.Result.Success)
             {
-                string responseText = request.downloadHandler.text;
-                UIDebug.Log(nameof(DoctorChatManager), $"Doctor name response: {responseText}");
-
-                try
+                string text = request.downloadHandler.text.Trim();
+                if (text.StartsWith("{"))
                 {
-                    // Try to parse the response
-                    if (!string.IsNullOrWhiteSpace(responseText))
+                    var response = JsonUtility.FromJson<DoctorNameResponse>(text);
+                    if (response.status == "success" && !string.IsNullOrWhiteSpace(response.doctorName))
                     {
-                        responseText = responseText.Trim();
-
-                        // Check if it's JSON
-                        if (responseText.StartsWith("{"))
-                        {
-                            DoctorNameResponse response = JsonUtility.FromJson<DoctorNameResponse>(responseText);
-
-                            if (response.status == "success" && !string.IsNullOrWhiteSpace(response.doctorName))
-                            {
-                                currentDoctorName = response.doctorName.Trim();
-                                success = true;
-                                UIDebug.Log(nameof(DoctorChatManager), $"✓ Doctor name fetched: {currentDoctorName}");
-                            }
-                        }
+                        currentDoctorName = response.doctorName.Trim();
+                        success = true;
                     }
                 }
-                catch (Exception e)
-                {
-                    UIDebug.Warn(nameof(DoctorChatManager), $"Failed to parse doctor name response: {e.Message}");
-                }
             }
-            else
-            {
-                UIDebug.Warn(nameof(DoctorChatManager), $"Failed to fetch doctor name: {request.error}");
-            }
-
-            // Fallback if API failed
-            if (!success)
-            {
-                UIDebug.Log(nameof(DoctorChatManager), "Using fallback doctor name lookup");
-
-                string upperKey = currentDoctorId.ToUpperInvariant();
-                if (doctorLookup.TryGetValue(upperKey, out var doctorInfo))
-                {
-                    currentDoctorName = doctorInfo.doctorName;
-                }
-                else
-                {
-                    currentDoctorName = $"Doctor {currentDoctorId}";
-                }
-            }
-
-            CompleteDoctorConnection();
+            if (!success) UseFallbackDoctorName();
+            else CompleteDoctorConnection();
         }
+    }
+
+    void UseFallbackDoctorName()
+    {
+        string key = currentDoctorId.ToUpperInvariant();
+        currentDoctorName = doctorLookup.TryGetValue(key, out var entry) ? entry.doctorName : $"Doctor {currentDoctorId}";
+        CompleteDoctorConnection();
     }
 
     void CompleteDoctorConnection()
     {
         isDoctorConnected = true;
-
-        // SET CHAT API USER
-        EnsureDependencies();
         if (useChatApi && chatApi != null)
         {
             chatApi.currentUserId = currentPatientId;
             chatApi.currentUserType = "patient";
         }
-
-        // UI UPDATE
-        if (doctorLoginContainer != null) doctorLoginContainer.SetActive(false);
-        if (chatContainer != null) chatContainer.SetActive(true);
-        if (sendMessageButton != null) sendMessageButton.interactable = true;
-        if (activeDoctorNameText != null) activeDoctorNameText.text = $"Chatting with {currentDoctorName}";
-
+        if (doctorLoginContainer != null) doctorLoginContainer.gameObject.SetActive(false);
+        if (chatContainer != null) chatContainer.gameObject.SetActive(true);
+        if (sendMessageButton != null) sendMessageButton.enabled = true;
+        if (activeDoctorNameText != null) activeDoctorNameText.Text = $"Chatting with {currentDoctorName}";
         DisplayStatusMessage($"Connected to {currentDoctorName}.", new Color(0.4f, 1f, 0.6f));
         ClearChatHistory();
         AppendMessage("System", defaultGreeting);
-
-        // FETCH CHAT HISTORY
         if (useChatApi && chatApi != null)
         {
             chatApi.FetchMessages(currentDoctorId, "doctor", OnChatHistoryLoaded);
             chatApi.StartAutoRefresh(currentDoctorId, "doctor");
         }
-
-        // Re-enable connect button
-        if (connectDoctorButton != null) connectDoctorButton.interactable = true;
+        if (connectDoctorButton != null) connectDoctorButton.enabled = true;
     }
 
-    void DisplayStatusMessage(string message, Color color)
+    void DisplayStatusMessage(string msg, Color c)
     {
         if (connectionStatusText != null)
         {
-            connectionStatusText.text = message;
-            connectionStatusText.color = color;
+            connectionStatusText.Text = msg;
+            connectionStatusText.TMP.color = c;
         }
     }
 
@@ -342,114 +210,51 @@ public class DoctorChatManager : MonoBehaviour
         if (!isDoctorConnected)
         {
             DisplayStatusMessage("Please connect to a doctor first.", Color.yellow);
-            UIDebug.Warn(nameof(DoctorChatManager), "SendMessage attempted without doctor connection");
             return;
         }
-
-        if (messageInputField == null) return;
-
-        string message = messageInputField.text.Trim();
-        if (string.IsNullOrEmpty(message))
-        {
-            UIDebug.Warn(nameof(DoctorChatManager), "SendMessage skipped - empty message");
-            return;
-        }
-
-        // Clear input immediately
-        messageInputField.text = string.Empty;
-
-        EnsureDependencies();
+        string msg = messageInputField?.text.Trim() ?? "";
+        if (string.IsNullOrEmpty(msg)) return;
+        messageInputField.text = "";
         if (useChatApi && chatApi != null)
         {
-            if (string.IsNullOrEmpty(currentPatientId))
+            if (string.IsNullOrEmpty(currentPatientId) || string.IsNullOrEmpty(currentDoctorId))
             {
-                DisplayStatusMessage("Patient ID missing. Cannot send message.", Color.red);
+                DisplayStatusMessage("Missing IDs. Cannot send.", Color.red);
                 return;
             }
-
-            if (string.IsNullOrEmpty(currentDoctorId))
+            if (sendMessageButton != null) sendMessageButton.enabled = false;
+            DisplayStatusMessage("Sending...", Color.white);
+            chatApi.SendMessage(currentDoctorId, "doctor", msg, response =>
             {
-                DisplayStatusMessage("Doctor ID missing. Cannot send message.", Color.red);
-                return;
-            }
-
-            if (sendMessageButton != null) sendMessageButton.interactable = false;
-            DisplayStatusMessage("Sending message...", Color.white);
-
-            UIDebug.Log(nameof(DoctorChatManager), $"Sending: sender={currentPatientId}, receiver={currentDoctorId}, message={message}");
-
-            chatApi.SendMessage(currentDoctorId, "doctor", message, (response) =>
-            {
-                if (sendMessageButton != null) sendMessageButton.interactable = true;
-
-                if (response == null)
+                if (sendMessageButton != null) sendMessageButton.enabled = true;
+                if (response == null || response.status != "success")
                 {
-                    DisplayStatusMessage("Failed to send: No response", Color.red);
-                    UIDebug.Error(nameof(DoctorChatManager), "Chat API returned null response");
+                    DisplayStatusMessage($"Send failed: {response?.message ?? "No response"}", Color.red);
                     return;
                 }
-
-                if (response.status != "success")
-                {
-                    string errorMessage = response.message ?? "Unknown error";
-                    DisplayStatusMessage($"Failed to send: {errorMessage}", Color.red);
-                    UIDebug.Error(nameof(DoctorChatManager), $"Chat API send failed: {errorMessage}");
-                    return;
-                }
-
-                UIDebug.Log(nameof(DoctorChatManager), $"Message sent successfully via API: {message}");
-                AppendMessage("You", message, response.timestamp);
-                DisplayStatusMessage("Message sent.", new Color(0.6f, 0.95f, 0.6f));
+                AppendMessage("You", msg, response.timestamp);
+                DisplayStatusMessage("Sent.", new Color(0.6f, 0.95f, 0.6f));
             });
         }
         else
         {
-            UIDebug.Log(nameof(DoctorChatManager), $"Message sent (local): {message}");
-            AppendMessage("You", message);
-
-            if (simulateDoctorResponses)
-            {
-                StartCoroutine(SimulateDoctorReply());
-            }
+            AppendMessage("You", msg);
+            if (simulateDoctorResponses) StartCoroutine(SimulateDoctorReply());
         }
     }
 
-    System.Collections.IEnumerator SimulateDoctorReply()
+    IEnumerator SimulateDoctorReply()
     {
         yield return new WaitForSeconds(simulatedResponseDelay);
-
-        if (!isDoctorConnected) yield break;
-
-        string reply = $"Thank you for the update. I'll review the latest metrics soon.";
-        UIDebug.Log(nameof(DoctorChatManager), "Simulated doctor reply");
-        AppendMessage(currentDoctorName, reply);
+        if (isDoctorConnected) AppendMessage(currentDoctorName, "Thank you for the update. I'll review the latest metrics soon.");
     }
 
-    void AppendMessage(string speaker, string message, string timestampIso = null)
+    void AppendMessage(string speaker, string msg, string timestampIso = null)
     {
-        DateTime displayTime = DateTime.Now;
-        if (!string.IsNullOrEmpty(timestampIso))
-        {
-            try
-            {
-                displayTime = DateTime.Parse(timestampIso).ToLocalTime();
-            }
-            catch (Exception e)
-            {
-                UIDebug.Warn(nameof(DoctorChatManager), $"Failed to parse timestamp: {timestampIso} - {e.Message}");
-            }
-        }
-
-        string formattedMessage = $"{displayTime:HH:mm} - {speaker}: {message}";
-        chatHistoryBuilder.AppendLine(formattedMessage);
-
-        if (chatHistoryText != null)
-        {
-            chatHistoryText.text = chatHistoryBuilder.ToString();
-            UIDebug.Log(nameof(DoctorChatManager), $"Appended message to chat: {formattedMessage}");
-        }
-
-        // Force scroll to bottom
+        DateTime time = string.IsNullOrEmpty(timestampIso) ? DateTime.Now : DateTime.Parse(timestampIso).ToLocalTime();
+        string line = $"{time:HH:mm} - {speaker}: {msg}";
+        chatHistoryBuilder.AppendLine(line);
+        if (chatHistoryText != null) chatHistoryText.Text = chatHistoryBuilder.ToString();
         if (chatScrollRect != null)
         {
             Canvas.ForceUpdateCanvases();
@@ -461,122 +266,57 @@ public class DoctorChatManager : MonoBehaviour
     void ClearChatHistory()
     {
         chatHistoryBuilder.Clear();
-        if (chatHistoryText != null)
-        {
-            chatHistoryText.text = string.Empty;
-        }
-        UIDebug.Log(nameof(DoctorChatManager), "Chat history cleared");
+        if (chatHistoryText != null) chatHistoryText.Text = "";
     }
 
     void ResetChatState()
     {
         isDoctorConnected = false;
-        currentDoctorId = string.Empty;
-        currentDoctorName = string.Empty;
-
-        EnsureDependencies();
-        if (useChatApi && chatApi != null)
-        {
-            chatApi.StopAutoRefresh();
-        }
-
-        if (sendMessageButton != null)
-        {
-            sendMessageButton.interactable = false;
-        }
-
-        if (doctorIdInputField != null)
-        {
-            doctorIdInputField.text = string.Empty;
-        }
-
-        if (messageInputField != null)
-        {
-            messageInputField.text = string.Empty;
-        }
-
-        if (doctorLoginContainer != null)
-        {
-            doctorLoginContainer.SetActive(true);
-        }
-
-        if (chatContainer != null)
-        {
-            chatContainer.SetActive(false);
-        }
+        currentDoctorId = currentDoctorName = "";
+        if (useChatApi && chatApi != null) chatApi.StopAutoRefresh();
+        if (sendMessageButton != null) sendMessageButton.enabled = false;
+        if (doctorIdInputField != null) doctorIdInputField.text = "";
+        if (messageInputField != null) messageInputField.text = "";
+        if (doctorLoginContainer != null) doctorLoginContainer.gameObject.SetActive(true);
+        if (chatContainer != null) chatContainer.gameObject.SetActive(false);
     }
 
     void OnChatHistoryLoaded(ChatMessagesResponse response)
     {
-        if (connectDoctorButton != null)
+        if (connectDoctorButton != null) connectDoctorButton.enabled = true;
+        if (response == null || response.status != "success")
         {
-            connectDoctorButton.interactable = true;
-        }
-
-        if (response == null)
-        {
-            DisplayStatusMessage("No response from chat service.", Color.red);
-            UIDebug.Error(nameof(DoctorChatManager), "OnChatHistoryLoaded: response is null");
+            DisplayStatusMessage($"Load failed: {response?.message}", Color.red);
             return;
         }
-
-        if (response.status != "success")
-        {
-            DisplayStatusMessage($"Failed to load chat: {response.message}", Color.red);
-            UIDebug.Error(nameof(DoctorChatManager), $"Chat history load failed: {response.message}");
-            return;
-        }
-
         ClearChatHistory();
-
         if (response.messages != null && response.messages.Length > 0)
         {
-            UIDebug.Log(nameof(DoctorChatManager), $"Loading {response.messages.Length} chat messages");
-
-            foreach (var msg in response.messages)
+            foreach (var m in response.messages)
             {
-                if (msg == null) continue;
-
-                bool isUserMessage = chatApi != null && string.Equals(msg.senderId, chatApi.currentUserId, StringComparison.OrdinalIgnoreCase);
-                string speaker = isUserMessage ? "You" : currentDoctorName;
-                AppendMessage(speaker, msg.message, msg.timestamp);
+                if (m == null) continue;
+                string speaker = string.Equals(m.senderId, chatApi?.currentUserId, StringComparison.OrdinalIgnoreCase) ? "You" : currentDoctorName;
+                AppendMessage(speaker, m.message, m.timestamp);
             }
         }
-        else
-        {
-            UIDebug.Log(nameof(DoctorChatManager), "No previous messages found");
-            AppendMessage("System", "No previous messages found.");
-        }
-
+        else AppendMessage("System", "No previous messages.");
         DisplayStatusMessage($"Connected to {currentDoctorName}.", new Color(0.4f, 1f, 0.6f));
     }
 
-    void OnNewChatMessage(ChatMessage message)
+    public void OnNewChatMessage(ChatMessage message)
     {
-        EnsureDependencies();
-        if (!isDoctorConnected || chatApi == null || message == null) return;
-
-        bool isSameConversation =
-            (string.Equals(message.senderId, currentDoctorId, StringComparison.OrdinalIgnoreCase) &&
-             string.Equals(message.receiverId, currentPatientId, StringComparison.OrdinalIgnoreCase)) ||
-            (string.Equals(message.receiverId, currentDoctorId, StringComparison.OrdinalIgnoreCase) &&
-             string.Equals(message.senderId, currentPatientId, StringComparison.OrdinalIgnoreCase));
-
-        if (!isSameConversation) return;
-
-        bool isUserMessage = string.Equals(message.senderId, chatApi.currentUserId, StringComparison.OrdinalIgnoreCase);
-        string speaker = isUserMessage ? "You" : currentDoctorName;
+        if (!isDoctorConnected || message == null || chatApi == null) return;
+        bool sameConv = (string.Equals(message.senderId, currentDoctorId) && string.Equals(message.receiverId, currentPatientId)) ||
+                        (string.Equals(message.receiverId, currentDoctorId) && string.Equals(message.senderId, currentPatientId));
+        if (!sameConv) return;
+        string speaker = string.Equals(message.senderId, chatApi.currentUserId) ? "You" : currentDoctorName;
         AppendMessage(speaker, message.message, message.timestamp);
-        UIDebug.Log(nameof(DoctorChatManager), $"New message received: {speaker}: {message.message}");
     }
 
     public void SetCurrentPatientId(string patientId)
     {
         if (string.IsNullOrWhiteSpace(patientId)) return;
-        EnsureDependencies();
         currentPatientId = patientId.Trim();
-        UIDebug.Log(nameof(DoctorChatManager), $"SetCurrentPatientId -> {currentPatientId}");
-
         if (chatApi != null)
         {
             chatApi.currentUserId = currentPatientId;
@@ -586,23 +326,9 @@ public class DoctorChatManager : MonoBehaviour
 
     void EnsureDependencies()
     {
-        if (chatApi == null)
-        {
-            chatApi = FindObjectOfType<ChatAPI>();
-        }
-        if (patientInputManager == null)
-        {
-            patientInputManager = FindObjectOfType<PatientInputManager>();
-        }
+        if (chatApi == null) chatApi = FindObjectOfType<ChatAPI>();
+        if (patientInputManager == null) patientInputManager = FindObjectOfType<PatientInputManager>();
     }
 }
 
-// Data structure for doctor name API response
-[Serializable]
-public class DoctorNameResponse
-{
-    public string status;
-    public string message;
-    public string doctorName;
-    public string doctorId;
-}
+[Serializable] public class DoctorNameResponse { public string status; public string message; public string doctorName; public string doctorId; }
