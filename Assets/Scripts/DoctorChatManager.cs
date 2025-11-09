@@ -5,31 +5,29 @@ using System.Collections.Generic;
 using System.Text;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Networking;
 using UnityEngine.UI;
-using UnityEngine.UIElements;
 
 
 public class DoctorChatManager : MonoBehaviour
 {
     [Header("Chat Entry Points")]
-    public Interactable chatButton;
+    public Button chatButton;
     public UIBlock chatPanel;
-    public Interactable closeChatButton;
+    public Button closeChatButton;
 
     [Header("Doctor Connection UI")]
-    public TextField doctorIdInputField;
-    public Interactable connectDoctorButton;
+    public TMP_InputField doctorIdInputField;
+    public Button connectDoctorButton;
     public TextBlock connectionStatusText;
     public UIBlock doctorLoginContainer;
 
     [Header("Chat UI")]
     public UIBlock chatContainer;
     public TextBlock activeDoctorNameText;
-    public TextField messageInputField;
-    public Interactable sendMessageButton;
+    public TMP_InputField messageInputField;
+    public Button sendMessageButton;
     public TextBlock chatHistoryText;
-    public ScrollView chatScrollRect;
+    public ScrollRect chatScrollRect;
 
     [Header("Input Field Settings")]
     public int maxInputLines = 4;

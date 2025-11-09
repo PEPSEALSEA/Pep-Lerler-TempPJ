@@ -8,9 +8,9 @@ public class PatientInputManager : MonoBehaviour
 {
     [Header("UI Components")]
     public UIBlock patientInputPanel;
-    public TextField patientIdInput;
-    public Interactable submitButton;
-    public Interactable skipButton;
+    public TMP_InputField patientIdInput;
+    public Button submitButton;
+    public Button skipButton;
     public TextBlock savedPatientIdText;
 
     [Header("Settings")]
