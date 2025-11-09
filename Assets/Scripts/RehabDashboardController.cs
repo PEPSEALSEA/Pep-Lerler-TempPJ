@@ -40,15 +40,15 @@ public class RehabDashboardController : MonoBehaviour
 
     [Header("Activity Graph")]
     public UIBlock lineGraph;
-    public Button toggleAll;
-    public Button togglePulse;
-    public Button toggleMovement;
-    public Button toggleSleep;
+    public Interactable toggleAll;
+    public Interactable togglePulse;
+    public Interactable toggleMovement;
+    public Interactable toggleSleep;
 
     [Header("UI Panels")]
     public UIBlock dashboardPanel;
-    public Button refreshButton;
-    public Button exportReportButton;
+    public Interactable refreshButton;
+    public Interactable exportReportButton;
 
     private PatientData currentPatientData;
     private PatientData previousPatientData;
