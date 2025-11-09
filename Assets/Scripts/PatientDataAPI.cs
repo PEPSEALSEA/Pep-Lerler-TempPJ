@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Collections;
-using System.Globalization;
+using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Networking;
 
 /// <summary>
 /// Main API client for Google Apps Script backend
 /// </summary>
-public class PatientDataAPI : MonoBehaviour
+public class PatientDataAPI : Singleton<PatientDataAPI>
 {
     [Header("API Configuration")]
     [Tooltip("Your Google Apps Script Web App URL")]
@@ -18,7 +19,7 @@ public class PatientDataAPI : MonoBehaviour
     public bool sendSampleDataOnStart = false;
     public float autoSendInterval = 5f; // seconds between auto-sends
 
-    private bool isAutoSending;
+    private bool isAutoSending = false;
 
     void Start()
     {
@@ -42,9 +43,11 @@ public class PatientDataAPI : MonoBehaviour
     /// </summary>
     public void StartAutoSend()
     {
-        if (isAutoSending) return;
-        isAutoSending = true;
-        StartCoroutine(AutoSendCoroutine());
+        if (!isAutoSending)
+        {
+            isAutoSending = true;
+            StartCoroutine(AutoSendCoroutine());
+        }
     }
 
     /// <summary>
@@ -65,15 +68,17 @@ public class PatientDataAPI : MonoBehaviour
     }
 
     /// <summary>
-    /// Generate realistic sample patient data with proper precision
+    /// Generate realistic sample patient data with proper decimal precision
     /// </summary>
     public PatientData GenerateSampleData(string patientId)
     {
-        // Pulse: integer
+        // Pulse: No decimals (integer)
         float pulseValue = Mathf.Round(UnityEngine.Random.Range(60f, 100f));
 
-        // Movement: 3 decimals, Sleep: 2 decimals
+        // Raw Movement: 3 decimals
         float movementValue = RoundToDecimals(UnityEngine.Random.Range(0f, 2f), 3);
+
+        // Sleep Score: 2 decimals
         float sleepValue = RoundToDecimals(UnityEngine.Random.Range(60f, 95f), 2);
 
         PatientData data = new PatientData
@@ -86,15 +91,19 @@ public class PatientDataAPI : MonoBehaviour
             jointAngle = GenerateSampleJointAngles()
         };
 
-        if (UnityEngine.Random.value < 0.1f)
+        // Occasionally generate anomaly data for testing
+        if (UnityEngine.Random.value < 0.1f) // 10% chance
         {
-            data.pulse = Mathf.Round(UnityEngine.Random.Range(130f, 160f));
+            data.pulse = Mathf.Round(UnityEngine.Random.Range(130f, 160f)); // Anomalous pulse (no decimals)
             Debug.Log($"Generated ANOMALY data: Pulse={data.pulse}");
         }
 
         return data;
     }
 
+    /// <summary>
+    /// Generate sample joint angle data (no decimals)
+    /// </summary>
     private JointAngleData GenerateSampleJointAngles()
     {
         return new JointAngleData
@@ -112,15 +121,15 @@ public class PatientDataAPI : MonoBehaviour
 
     /// <summary>
     /// Submit patient data to Google Apps Script
-    /// NOTE: Your API doesn't support "submitData" action. This method stores data locally.
-    /// You need to add "submitData" action to your Google Apps Script backend.
     /// </summary>
     public IEnumerator SubmitPatientData(PatientData data, Action<ApiResponse> callback)
     {
+        // Round the values to ensure proper precision before sending
         float pulse = Mathf.Round(data.pulse);
-        float movement = RoundToDecimals(data.movementMagnitude, 3);
-        float sleep = RoundToDecimals(data.sleepQualityScore, 2);
+        float movement = (float)Math.Round((double)data.movementMagnitude, 3);
+        float sleep = (float)Math.Round((double)data.sleepQualityScore, 2);
 
+        // Round joint angles
         JointAngleData roundedJoints = new JointAngleData
         {
             leftShoulder = Mathf.Round(data.jointAngle.leftShoulder),
@@ -133,33 +142,47 @@ public class PatientDataAPI : MonoBehaviour
             rightKnee = Mathf.Round(data.jointAngle.rightKnee)
         };
 
-        // Store locally since API doesn't support submitData
-        Debug.LogWarning("[API] submitData action not supported by backend. Storing data locally.");
-        Debug.Log($"Data: Patient={data.patientId}, Pulse={pulse}, Movement={movement:F3}, Sleep={sleep:F2}");
-
-        // Simulate success response
-        ApiResponse response = new ApiResponse
+        // Create the request with action "submitData" to match the API
+        SubmitDataRequest requestData = new SubmitDataRequest
         {
-            status = "success",
-            message = "Data stored locally (backend doesn't support submitData)",
-            pulseMA = pulse,
-            movementMA = movement,
-            isPulseAnomaly = pulse > 120f
+            action = "submitData",
+            timestamp = data.timestamp,
+            patientId = data.patientId,
+            pulse = pulse,
+            movementMagnitude = movement,
+            sleepQualityScore = sleep,
+            jointAngle = roundedJoints
         };
 
-        callback?.Invoke(response);
-        yield break;
+        string jsonData = JsonUtility.ToJson(requestData);
+
+        Debug.Log($"Sending data: Patient={data.patientId}, Pulse={pulse}, Movement={movement:F3}, Sleep={sleep:F2}");
+        Debug.Log($"JSON: {jsonData}");
+
+        // Use POST method with JSON body
+        using (UnityWebRequest request = new UnityWebRequest(apiUrl, "POST"))
+        {
+            byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
+            request.uploadHandler = new UploadHandlerRaw(bodyRaw);
+            request.downloadHandler = new DownloadHandlerBuffer();
+            request.SetRequestHeader("Content-Type", "application/json");
+
+            yield return request.SendWebRequest();
+
+            ProcessResponse(request, callback);
+        }
     }
 
-    void ProcessResponse(UnityWebRequest request, Action<ApiResponse> callback)
+    void ProcessResponse(UnityWebRequest request, System.Action<ApiResponse> callback)
     {
         ApiResponse response = new ApiResponse();
 
-        if (RequestSucceeded(request))
+        if (request.result == UnityWebRequest.Result.Success)
         {
             string responseText = request.downloadHandler.text;
             Debug.Log($"[API] Response received: {responseText}");
 
+            // Check if response is empty or just whitespace
             if (string.IsNullOrWhiteSpace(responseText))
             {
                 response.status = "success";
@@ -167,9 +190,11 @@ public class PatientDataAPI : MonoBehaviour
             }
             else
             {
+                // Try to parse as JSON
                 try
                 {
                     responseText = responseText.Trim();
+
                     if (responseText.StartsWith("{") || responseText.StartsWith("["))
                     {
                         response = JsonUtility.FromJson<ApiResponse>(responseText);
@@ -177,13 +202,15 @@ public class PatientDataAPI : MonoBehaviour
                     }
                     else
                     {
+                        // Response is not JSON - might be HTML or plain text
                         response.status = "success";
                         response.message = "Data submitted (non-JSON response)";
-                        Debug.LogWarning($"[API] Non-JSON response received: {responseText.Substring(0, Mathf.Min(100, responseText.Length))}");
+                        Debug.LogWarning($"[API] Non-JSON response received: {responseText.Substring(0, Math.Min(100, responseText.Length))}");
                     }
                 }
                 catch (Exception e)
                 {
+                    // Even if JSON parsing fails, the request was successful
                     response.status = "success";
                     response.message = "Data submitted (failed to parse response)";
                     Debug.LogWarning($"[API] Failed to parse response: {e.Message}");
@@ -193,7 +220,7 @@ public class PatientDataAPI : MonoBehaviour
         else
         {
             Debug.LogError($"[API] Request failed: {request.error} (Code: {request.responseCode})");
-            Debug.LogError($"[API] Response body: {(request.downloadHandler != null ? request.downloadHandler.text : string.Empty)}");
+            Debug.LogError($"[API] Response body: {request.downloadHandler.text}");
 
             response.status = "error";
             response.message = request.error;
@@ -202,38 +229,12 @@ public class PatientDataAPI : MonoBehaviour
         callback?.Invoke(response);
     }
 
-    bool IsJsonLike(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text)) return false;
-        string trimmed = text.TrimStart();
-        return trimmed.StartsWith("{") || trimmed.StartsWith("[");
-    }
-
-    IEnumerator SubmitPatientDataViaGet(SubmitDataRequest data, Action<ApiResponse> callback)
-    {
-        string jointAngleJson = JsonUtility.ToJson(data.jointAngle);
-        string url =
-            $"{apiUrl}?action=submitData" +
-            $"&timestamp={UnityWebRequest.EscapeURL(data.timestamp)}" +
-            $"&patientId={UnityWebRequest.EscapeURL(data.patientId)}" +
-            $"&pulse={UnityWebRequest.EscapeURL(FormatFloat(data.pulse, "F0"))}" +
-            $"&movementMagnitude={UnityWebRequest.EscapeURL(FormatFloat(data.movementMagnitude, "F3"))}" +
-            $"&sleepQualityScore={UnityWebRequest.EscapeURL(FormatFloat(data.sleepQualityScore, "F2"))}" +
-            $"&jointAngle={UnityWebRequest.EscapeURL(jointAngleJson)}";
-
-        using (UnityWebRequest request = UnityWebRequest.Get(url))
-        {
-            yield return request.SendWebRequest();
-            ProcessResponse(request, callback);
-        }
-    }
-
     /// <summary>
     /// Get patient data from the server
     /// </summary>
     public IEnumerator GetPatientData(string patientId, Action<PatientDataResponse> callback)
     {
-        string url = $"{apiUrl}?action=getPatientData&patientId={UnityWebRequest.EscapeURL(patientId)}";
+        string url = $"{apiUrl}?action=getPatientData&patientId={patientId}";
 
         using (UnityWebRequest request = UnityWebRequest.Get(url))
         {
@@ -241,7 +242,7 @@ public class PatientDataAPI : MonoBehaviour
 
             PatientDataResponse response = new PatientDataResponse();
 
-            if (RequestSucceeded(request))
+            if (request.result == UnityWebRequest.Result.Success)
             {
                 string responseText = request.downloadHandler.text;
 
@@ -256,7 +257,7 @@ public class PatientDataAPI : MonoBehaviour
                     {
                         responseText = responseText.Trim();
 
-                        if (IsJsonLike(responseText))
+                        if (responseText.StartsWith("{") || responseText.StartsWith("["))
                         {
                             response = JsonUtility.FromJson<PatientDataResponse>(responseText);
                         }
@@ -292,6 +293,7 @@ public class PatientDataAPI : MonoBehaviour
         {
             Debug.Log($"✓ Data submitted successfully! Message: {response.message}");
 
+            // Only log anomalies
             if (response.isPulseAnomaly)
             {
                 Debug.LogWarning("⚠ PULSE ANOMALY DETECTED!");
@@ -303,23 +305,12 @@ public class PatientDataAPI : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Round to specific number of decimal places (fixes floating point precision)
+    /// </summary>
     float RoundToDecimals(float value, int decimals)
     {
-        return (float)Math.Round(value, decimals, MidpointRounding.AwayFromZero);
-    }
-
-    string FormatFloat(float value, string format)
-    {
-        return value.ToString(format, CultureInfo.InvariantCulture);
-    }
-
-    bool RequestSucceeded(UnityWebRequest request)
-    {
-#if UNITY_2020_1_OR_NEWER
-        return request.result == UnityWebRequest.Result.Success;
-#else
-        return !request.isNetworkError && !request.isHttpError;
-#endif
+        return (float)Math.Round((double)value, decimals);
     }
 }
 

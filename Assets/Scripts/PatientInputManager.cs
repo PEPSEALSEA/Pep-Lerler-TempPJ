@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-public class PatientInputManager : MonoBehaviour
+public class PatientInputManager : Singleton<PatientInputManager>
 {
     [Header("UI Components")]
     public GameObject patientInputPanel;
@@ -13,11 +13,6 @@ public class PatientInputManager : MonoBehaviour
 
     [Header("Settings")]
     public string savedPatientIdKey = "SavedPatientId";
-
-    [Header("Dependencies")]
-    public PatientDataAPI patientDataAPI;
-    public ChatAPI chatApi;
-    public DoctorChatManager doctorChatManager;
 
     private string currentPatientId = "";
 
@@ -69,16 +64,9 @@ public class PatientInputManager : MonoBehaviour
             currentPatientId = patientId;
             PlayerPrefs.SetString(savedPatientIdKey, patientId);
             PlayerPrefs.Save();
-            EnsureDependencies();
-            if (patientDataAPI != null)
-            {
-                patientDataAPI.testPatientId = currentPatientId;
-            }
-            if (chatApi != null)
-            {
-                chatApi.currentUserId = currentPatientId;
-                chatApi.currentUserType = "patient";
-            }
+            PatientDataAPI.Instance.testPatientId = currentPatientId;
+            ChatAPI.Instance.currentUserId = currentPatientId;
+            ChatAPI.Instance.currentUserType = "patient"; // ADD THIS LINE
             UpdateSavedIdDisplay();
         }
     }
@@ -118,11 +106,7 @@ public class PatientInputManager : MonoBehaviour
 
         OnPatientIdSubmitted?.Invoke(currentPatientId);
 
-        EnsureDependencies();
-        if (doctorChatManager != null)
-        {
-            doctorChatManager.SetCurrentPatientId(currentPatientId);
-        }
+        DoctorChatManager.Instance?.SetCurrentPatientId(currentPatientId);
     }
 
     void OnSkipClicked()
@@ -135,18 +119,11 @@ public class PatientInputManager : MonoBehaviour
         }
 
         string idToUse = !string.IsNullOrEmpty(currentPatientId) ? currentPatientId : "DEFAULT_PATIENT";
-        EnsureDependencies();
-        if (chatApi != null)
-        {
-            chatApi.currentUserId = idToUse;
-            chatApi.currentUserType = "patient";
-        }
+        ChatAPI.Instance.currentUserId = idToUse;
+        ChatAPI.Instance.currentUserType = "patient";
         OnPatientIdSubmitted?.Invoke(idToUse);
 
-        if (doctorChatManager != null)
-        {
-            doctorChatManager.SetCurrentPatientId(idToUse);
-        }
+        DoctorChatManager.Instance?.SetCurrentPatientId(idToUse);
     }
 
     public string GetCurrentPatientId()
@@ -160,22 +137,6 @@ public class PatientInputManager : MonoBehaviour
         {
             patientInputPanel.SetActive(true);
             UIDebug.Log(nameof(PatientInputManager), "Patient input panel shown");
-        }
-    }
-
-    void EnsureDependencies()
-    {
-        if (patientDataAPI == null)
-        {
-            patientDataAPI = FindObjectOfType<PatientDataAPI>();
-        }
-        if (chatApi == null)
-        {
-            chatApi = FindObjectOfType<ChatAPI>();
-        }
-        if (doctorChatManager == null)
-        {
-            doctorChatManager = FindObjectOfType<DoctorChatManager>();
         }
     }
 }

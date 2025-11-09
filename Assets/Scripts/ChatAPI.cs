@@ -145,7 +145,6 @@ public class ChatAPI : Singleton<ChatAPI>
 
         using (UnityWebRequest request = UnityWebRequest.Get(url))
         {
-            request.SetRequestHeader("Accept", "application/json");
             yield return request.SendWebRequest();
 
             ChatMessagesResponse response = new ChatMessagesResponse();
@@ -156,34 +155,24 @@ public class ChatAPI : Singleton<ChatAPI>
 
                 if (showDebugLogs) Debug.Log($"[ChatAPI] Response: {responseText}");
 
-                // Guard against HTML error pages or non-JSON responses
-                if (!IsLikelyJson(responseText))
+                try
                 {
-                    Debug.LogError($"[ChatAPI] Expected JSON but got non-JSON response. Raw: {responseText}");
-                    response.status = "error";
-                    response.message = "Invalid response from server";
-                }
-                else
-                {
-                    try
-                    {
-                        response = JsonUtility.FromJson<ChatMessagesResponse>(responseText);
+                    response = JsonUtility.FromJson<ChatMessagesResponse>(responseText);
 
-                        if (response.status == "success")
-                        {
-                            if (showDebugLogs) Debug.Log($"[ChatAPI] ✓ Fetched {response.messages.Length} messages");
-                        }
-                        else
-                        {
-                            Debug.LogError($"[ChatAPI] Server error: {response.message}");
-                        }
-                    }
-                    catch (Exception e)
+                    if (response.status == "success")
                     {
-                        Debug.LogError($"[ChatAPI] Failed to parse response: {e.Message}");
-                        response.status = "error";
-                        response.message = "Failed to parse response";
+                        if (showDebugLogs) Debug.Log($"[ChatAPI] ✓ Fetched {response.messages.Length} messages");
                     }
+                    else
+                    {
+                        Debug.LogError($"[ChatAPI] Server error: {response.message}");
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"[ChatAPI] Failed to parse response: {e.Message}");
+                    response.status = "error";
+                    response.message = "Failed to parse response";
                 }
             }
             else
@@ -208,7 +197,6 @@ public class ChatAPI : Singleton<ChatAPI>
 
         using (UnityWebRequest request = UnityWebRequest.Get(url))
         {
-            request.SetRequestHeader("Accept", "application/json");
             yield return request.SendWebRequest();
 
             ConversationsResponse response = new ConversationsResponse();
@@ -219,34 +207,24 @@ public class ChatAPI : Singleton<ChatAPI>
 
                 if (showDebugLogs) Debug.Log($"[ChatAPI] Conversations response: {responseText}");
 
-                // Guard against HTML error pages or non-JSON responses
-                if (!IsLikelyJson(responseText))
+                try
                 {
-                    Debug.LogError($"[ChatAPI] Expected JSON but got non-JSON response. Raw: {responseText}");
-                    response.status = "error";
-                    response.message = "Invalid response from server";
-                }
-                else
-                {
-                    try
-                    {
-                        response = JsonUtility.FromJson<ConversationsResponse>(responseText);
+                    response = JsonUtility.FromJson<ConversationsResponse>(responseText);
 
-                        if (response.status == "success")
-                        {
-                            if (showDebugLogs) Debug.Log($"[ChatAPI] ✓ Fetched {response.conversations.Length} conversations");
-                        }
-                        else
-                        {
-                            Debug.LogError($"[ChatAPI] Server error: {response.message}");
-                        }
-                    }
-                    catch (Exception e)
+                    if (response.status == "success")
                     {
-                        Debug.LogError($"[ChatAPI] Failed to parse response: {e.Message}");
-                        response.status = "error";
-                        response.message = "Failed to parse response";
+                        if (showDebugLogs) Debug.Log($"[ChatAPI] ✓ Fetched {response.conversations.Length} conversations");
                     }
+                    else
+                    {
+                        Debug.LogError($"[ChatAPI] Server error: {response.message}");
+                    }
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError($"[ChatAPI] Failed to parse response: {e.Message}");
+                    response.status = "error";
+                    response.message = "Failed to parse response";
                 }
             }
             else
@@ -279,73 +257,29 @@ public class ChatAPI : Singleton<ChatAPI>
 
         if (showDebugLogs) Debug.Log($"[ChatAPI] Sending message: {jsonData}");
 
-        using (UnityWebRequest request = new UnityWebRequest(apiUrl, "POST"))
+        // ADD ?action=sendChatMessage
+        using (UnityWebRequest request = new UnityWebRequest(apiUrl + "?action=sendChatMessage", "POST"))
         {
             byte[] bodyRaw = System.Text.Encoding.UTF8.GetBytes(jsonData);
             request.uploadHandler = new UploadHandlerRaw(bodyRaw);
             request.downloadHandler = new DownloadHandlerBuffer();
             request.SetRequestHeader("Content-Type", "application/json");
-            request.SetRequestHeader("Accept", "application/json");
 
             yield return request.SendWebRequest();
 
-            bool requestSucceeded = request.result == UnityWebRequest.Result.Success;
-            string responseText = request.downloadHandler != null ? request.downloadHandler.text : string.Empty;
-            bool looksJson = IsLikelyJson(responseText);
+            SendMessageResponse response = new SendMessageResponse();
 
-            if (requestSucceeded && looksJson)
+            if (request.result == UnityWebRequest.Result.Success)
             {
-                HandleSendMessageResponse(request, callback);
-                yield break;
-            }
+                string responseText = request.downloadHandler.text;
 
-            Debug.LogWarning("[ChatAPI] Primary POST failed or returned non-JSON. Attempting GET fallback...");
-        }
+                if (showDebugLogs) Debug.Log($"[ChatAPI] Send response: {responseText}");
 
-        yield return SendChatMessageViaGet(requestData, callback);
-    }
-
-    // ============== HELPER METHODS ==============
-
-    /// <summary>
-    /// Broadcast new messages to all listeners (can be used with Unity Events)
-    /// </summary>
-    private void BroadcastNewMessages(ChatMessage[] messages)
-    {
-        // Send message through Unity's messaging system
-        foreach (ChatMessage msg in messages)
-        {
-            SendMessage("OnNewChatMessage", msg, SendMessageOptions.DontRequireReceiver);
-        }
-    }
-
-    void OnDestroy()
-    {
-        StopAutoRefresh();
-    }
-
-    void HandleSendMessageResponse(UnityWebRequest request, Action<SendMessageResponse> callback)
-    {
-        SendMessageResponse response = new SendMessageResponse();
-
-        if (request.result == UnityWebRequest.Result.Success)
-        {
-            string responseText = request.downloadHandler != null ? request.downloadHandler.text : string.Empty;
-
-            if (showDebugLogs) Debug.Log($"[ChatAPI] Send response: {responseText}");
-
-            if (!IsLikelyJson(responseText))
-            {
-                Debug.LogError($"[ChatAPI] Expected JSON but got non-JSON response. Raw: {responseText}");
-                response.status = "error";
-                response.message = "Invalid response from server";
-            }
-            else
-            {
                 try
                 {
                     response = JsonUtility.FromJson<SendMessageResponse>(responseText);
 
+                    // Fallback: if 'message' is missing but status is success
                     if (string.IsNullOrEmpty(response.message) && response.status == "success")
                     {
                         response.message = "Message sent successfully";
@@ -368,48 +302,34 @@ public class ChatAPI : Singleton<ChatAPI>
                     response.message = "Invalid response from server";
                 }
             }
-        }
-        else
-        {
-            Debug.LogError($"[ChatAPI] Send failed: {request.error}");
-            response.status = "error";
-            response.message = request.error;
-        }
+            else
+            {
+                Debug.LogError($"[ChatAPI] Send failed: {request.error}");
+                response.status = "error";
+                response.message = request.error;
+            }
 
-        callback?.Invoke(response);
-    }
-
-    IEnumerator SendChatMessageViaGet(SendChatMessageRequest data, Action<SendMessageResponse> callback)
-    {
-        // FIXED: Use correct parameter names that match the API
-        string url =
-            $"{apiUrl}?action=sendChatMessage" +
-            $"&sender={UnityWebRequest.EscapeURL(data.sender)}" +
-            $"&senderType={UnityWebRequest.EscapeURL(data.senderType)}" +
-            $"&receiver={UnityWebRequest.EscapeURL(data.receiver)}" +
-            $"&receiverType={UnityWebRequest.EscapeURL(data.receiverType)}" +
-            $"&message={UnityWebRequest.EscapeURL(data.message)}";
-
-        if (showDebugLogs) Debug.Log($"[ChatAPI] GET fallback URL: {url}");
-
-        using (UnityWebRequest request = UnityWebRequest.Get(url))
-        {
-            yield return request.SendWebRequest();
-            HandleSendMessageResponse(request, callback);
+            callback?.Invoke(response);
         }
     }
 
-    // Simple heuristic to check if a string looks like JSON to avoid parsing HTML error pages
-    private static bool IsLikelyJson(string text)
+    // ============== HELPER METHODS ==============
+
+    /// <summary>
+    /// Broadcast new messages to all listeners (can be used with Unity Events)
+    /// </summary>
+    private void BroadcastNewMessages(ChatMessage[] messages)
     {
-        if (string.IsNullOrEmpty(text)) return false;
-        for (int i = 0; i < text.Length; i++)
+        // Send message through Unity's messaging system
+        foreach (ChatMessage msg in messages)
         {
-            char c = text[i];
-            if (char.IsWhiteSpace(c)) continue;
-            return c == '{' || c == '[';
+            SendMessage("OnNewChatMessage", msg, SendMessageOptions.DontRequireReceiver);
         }
-        return false;
+    }
+
+    void OnDestroy()
+    {
+        StopAutoRefresh();
     }
 }
 
